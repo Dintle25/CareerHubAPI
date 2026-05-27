@@ -1,0 +1,12 @@
+{
+  "version": 2,
+  "dgSpecHash": "2F7y3fAFuEc=",
+  "success": true,
+  "projectFilePath": "C:\\Users\\Dintle\\Pictures\\Careerbubapi\\CareerHubAPI\\API\\API.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\Dintle\\.nuget\\packages\\microsoft.aspnetcore.openapi\\10.0.8\\microsoft.aspnetcore.openapi.10.0.8.nupkg.sha512",
+    "C:\\Users\\Dintle\\.nuget\\packages\\microsoft.openapi\\2.0.0\\microsoft.openapi.2.0.0.nupkg.sha512",
+    "C:\\Users\\Dintle\\.nuget\\packages\\scalar.aspnetcore\\2.14.14\\scalar.aspnetcore.2.14.14.nupkg.sha512"
+  ],
+  "logs": []
+}
