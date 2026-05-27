@@ -6,31 +6,23 @@ using API.Data;
 [Route("api/[controller]")]
 public class JobsController : ControllerBase
 {
+
     [HttpGet]
     public async Task<ActionResult<IEnumerable<Job>>> GetJobsAsync()
     {
 
         await Task.Delay(200);
-        
-        // var jobs = new List<Job>(); 
 
-        // if (jobs == null || !jobs.Any())
-        // {
+        // var jobs = new List<Job>();  
+
+        // if (!jobs.Any())
         //     return NotFound();
-        // }
 
-        // return JobStore.jobs;
-
-        var jobs = new List<Job>();  
-
-        if (!jobs.Any())
-            return NotFound();
-
-        return Ok(jobs);
+        return Ok(JobStore.jobs);
     }
 
 [HttpGet("{id}")]
-    public async Task<ActionResult<Job>> GetJobById(int id)
+    public async Task<ActionResult> GetJobById(int id)
     {
         await Task.Delay(200);
 
