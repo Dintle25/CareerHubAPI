@@ -1,8 +1,10 @@
 using API.Models;
+
 namespace API.Data;
+
 public static class JobStore
 {
-    public static readonly List<Job> jobs = new()
+    public static readonly List<Job> Jobs = new()
     {
         new Job(
             Guid.NewGuid(),
@@ -10,7 +12,7 @@ public static class JobStore
             "Build beautiful user interfaces for our platform",
             "Bitcube",
             "Cape Town",
-            "Full-time"
+            JobType.FullTime
         ),
 
         new Job(
@@ -19,17 +21,16 @@ public static class JobStore
             "An experienced developer to join the backend team",
             "Bitcube",
             "Bloemfontein",
-            "Full-time"
+            JobType.FullTime
         ),
 
         new Job(
             Guid.NewGuid(),
-            "Data analyst",
+            "Data Analyst",
             "Analyze business data and create reports",
             "Bitcube",
             "Bloemfontein",
-            "Part-time"
+            JobType.PartTime
         )
     };
-
 }
