@@ -1,7 +1,17 @@
+using API.Middleware;
 using Scalar.AspNetCore;
+using Serilog;
 
+Log.Logger = new LoggerConfiguration()
+.WriteTo.Console()
+.CreateLogger();
+try
+{
+    Log.Information("Starting up the Conference Booking API...");
 // Phase 1: Builder-register the services into the app---dependency injection controller
 var Builder = WebApplication.CreateBuilder(args);
+Builder.Host.UseSerilog();
+
 
 //Registering the services
 Builder.Services.AddControllers()
@@ -14,7 +24,9 @@ Builder.Services.AddControllers()
 
 Builder.Services.AddProblemDetails();     // Turns all errors into standard format
 
-Builder.Services.AddOpenApi();     //registering built-in OpenAPI document
+Builder.Services.AddOpenApi();
+Builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+Builder.Services.AddProblemDetails();     //registering built-in OpenAPI document
 
 var app = Builder.Build();        //nothing can be registered after this
 
@@ -33,5 +45,16 @@ app.UseStatusCodePages();      // Turns 404, 400 and other status codes into nic
 
 app.UseHttpsRedirection();
 
+app.UseSerilogRequestLogging();
 app.MapControllers();
 app.Run();
+}
+catch (Exception ex)
+{
+    Log.Fatal(ex, "Application failed to start correctly.");
+}
+
+finally
+{
+    Log.CloseAndFlush(); //Ensure all buffered log entries are flushed before application exit. 
+}
