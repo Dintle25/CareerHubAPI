@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using API.Models;
 using API.Data;
 using API.DTOs;
+using API.Exceptions;
 
 [ApiController]
 [Route("api/[controller]")]
@@ -24,15 +25,18 @@ public class JobsController : ControllerBase
     }
 
 [HttpGet("{id}")]
-    public async Task<ActionResult> GetJobByIdAsync(int id)
+    public async Task<ActionResult> GetJobByIdAsync(Guid id)
     {
         await Task.Delay(200);
 
-        var job = JobStore.Jobs.FirstOrDefault();
+       var job = JobStore.Jobs.FirstOrDefault(j => j.Id == id);
 
-        return job is not null 
-            ? Ok(job) 
-            : NotFound();
+    if (job is null)
+    {
+        throw new JobNotFoundException(id);
+    }
+
+    return Ok(job);
     }
 
 //POST--------------------------------------------------------------------------------------------------------------
@@ -48,7 +52,9 @@ public class JobsController : ControllerBase
 
         if (exists)
         {
-            return Conflict(new { detail = "A job with the same title and company already exists." });
+            throw new DuplicateJobListingException(
+            request.Company,
+            request.Title);
         }
 
 
@@ -84,7 +90,7 @@ public class JobsController : ControllerBase
 
         var job = JobStore.Jobs.FirstOrDefault(j => j.Id == id);
         if (job == null)
-            return NotFound();
+             throw new JobNotFoundException(id);
 
      
         job.Title = request.Title;
@@ -105,54 +111,13 @@ public class JobsController : ControllerBase
 
         var job = JobStore.Jobs.FirstOrDefault(j => j.Id == id);
         if (job == null)
-            return NoContent();    
+            throw new JobNotFoundException(id);     
 
         JobStore.Jobs.Remove(job);
         return NoContent();
     }
 
-    //  [HttpPut("{id:guid}")]
-    // public async Task<ActionResult<JobResponse>> UpdateJobAsync(Guid id, [FromBody] CreateJobRequest request)
-    
-    // {
-    //     await Task.Delay(50); 
 
-
-    //     var existingJob  = JobStore.jobs.FirstOrDefault(b => b.Id == id);
-
-    //     if (existingJob == null)
-    //     {
-    //         return NotFound(); 
-    //     }}
-
-
-        // var updatedJob = existingJob with
-        // {
-        //     Title = request.Title;
-        //     Description = request.Description;
-        //     Company = request.Company;
-        //     Location = request.Location;
-        //     Type = request.Type;
-        // };
-
-  
-        // JobStore.jobs.Remove(existingJob);
-        // JobStore.jobs.Add(updatedJob);
-
-       
-
-        // //4. Map Domain Model to to Response DTO
-        // var response = new BookingResponse(
-        //     Guid.NewGuid(),
-        //     UpdatedJob.Title,
-        //     updatedJob.Description,
-        //     updatedJob.Company,
-        //     updatedJob.Location,
-        //     updatedJob.Type
-        // ); 
-
-
-        // return Ok(response);
 
 private static JobResponse ToJobResponse(Job job)
     {
