@@ -43,6 +43,24 @@ I chose to return 200 OK with the updated job data. This is better because the c
 I return 204 No Content even if the job does not exist. This is the best choice for a job board because DELETE should be idempotent. If someone tries to delete the same job twice, the second request should not fail. It makes the API more reliable.
 
 
+## Controller Thinning
+
+Controller thinning means keeping controllers simple and focused on successful requests.
+
+Instead of returning NotFound() or Conflict() directly, the controller throws custom exceptions such as JobNotFoundException and DuplicateJobListingException.
+
+The GlobalExceptionHandler catches these exceptions and returns the correct HTTP response. This makes the controller easier to read, easier to maintain, and keeps error handling in one place.
+
+## Structured Logging
+
+Serilog is used to create structured logs for the application.
+
+Structured logging is better than using Console.WriteLine() because it records important information such as the HTTP method, request path, status code, response time, and exception details in a consistent format.
+
+This makes it easier to monitor the application, find errors, and troubleshoot problems in production environments.
+
+
+
 ## Endpoints
 
 | Method | Endpoint         | Description                    | Status Codes     |
