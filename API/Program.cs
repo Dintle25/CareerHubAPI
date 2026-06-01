@@ -1,6 +1,14 @@
 using API.Middleware;
 using Scalar.AspNetCore;
 using Serilog;
+// Enables JWT Bearer authentication
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+
+// Provides classes for validating JWT tokens
+using Microsoft.IdentityModel.Tokens;
+// Used to convert the secret key into bytes
+using System.Text;
+
 
 Log.Logger = new LoggerConfiguration()
 .WriteTo.Console()
@@ -45,6 +53,37 @@ Builder.Services.AddCors(options =>
             .AllowAnyMethod();
     });
 });
+
+// Read the JWT secret key from appsettings
+var jwtSecretKey = "super-secret-key-that-must-be-very-long-for-hs256-to-work-securely!";
+
+// Configure JWT authentication
+Builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            // Check if the token has expired
+            ValidateLifetime = true,
+
+            // Check if the signing key is valid
+            ValidateIssuerSigningKey = true,
+
+            // Issuer validation is not required for this assignment
+            ValidateIssuer = false,
+
+            // Audience validation is not required for this assignment
+            ValidateAudience = false,
+
+            // Create the security key from the appsettings value
+            IssuerSigningKey = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(jwtSecretKey))
+        };
+    });
+
+// Register authorization services
+Builder.Services.AddAuthorization();
+
 
 var app = Builder.Build();        //nothing can be registered after this
 
