@@ -28,6 +28,24 @@ Builder.Services.AddOpenApi();
 Builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 Builder.Services.AddProblemDetails();     //registering built-in OpenAPI document
 
+// Add CORS services to the application
+Builder.Services.AddCors(options =>
+{
+    // Create a named policy called "FrontEndPolicy"
+    options.AddPolicy("FrontEndPolicy", policy =>
+    {
+        policy
+            // Allow requests from the Next.js frontend
+            .WithOrigins("http://localhost:3000")
+
+            // Allow all request headers
+            .AllowAnyHeader()
+
+            // Allow all HTTP methods (GET, POST, PUT, DELETE, etc.)
+            .AllowAnyMethod();
+    });
+});
+
 var app = Builder.Build();        //nothing can be registered after this
 
 
@@ -40,12 +58,24 @@ if(app.Environment.IsDevelopment())
 }
 
 //Error Handling
-app.UseExceptionHandler();     // Catches unexpected errors and shows them nicely
-app.UseStatusCodePages();      // Turns 404, 400 and other status codes into nice error messages
 
-app.UseHttpsRedirection();
+
+
+
 
 app.UseSerilogRequestLogging();
+// Apply the CORS policy for frontend requests
+app.UseCors("FrontEndPolicy");
+// Handle exceptions globally
+app.UseExceptionHandler();     // Catches unexpected errors and shows them nicely
+app.UseStatusCodePages();      // Turns 404, 400 and other status codes into nice error messages
+// Redirect HTTP requests to HTTPS
+app.UseHttpsRedirection();
+// Check if the user is authenticated
+app.UseAuthentication();
+
+// Check if the user is authorized
+app.UseAuthorization();
 app.MapControllers();
 app.Run();
 }
