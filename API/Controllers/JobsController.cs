@@ -3,6 +3,7 @@ using API.Models;
 using API.Data;
 using API.DTOs;
 using API.Exceptions;
+using Microsoft.AspNetCore.Authorization;
 
 [ApiController]
 [Route("api/[controller]")]
@@ -40,6 +41,7 @@ public class JobsController : ControllerBase
     }
 
 //POST--------------------------------------------------------------------------------------------------------------
+[Authorize(Roles = "Employer")]
 [HttpPost]
    public async Task<ActionResult<JobResponse>> CreateBookingAsync([FromBody] CreateJobRequest request)
     {
@@ -83,6 +85,7 @@ public class JobsController : ControllerBase
     }
 
 // put--------------------------------------------------------------------------------------------------------------------------
+[Authorize(Roles = "Employer")]
     [HttpPut("{id}")]
     public async Task<ActionResult<JobResponse>> UpdateJobAsync(Guid id, [FromBody] UpdateJobRequest request)
     {
@@ -104,6 +107,7 @@ public class JobsController : ControllerBase
     }
 
     // delete----------------------------------------------------------------------------------------------------------------
+    [Authorize(Roles = "Employer")]
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteJob(Guid id)
     {
