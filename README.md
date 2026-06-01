@@ -60,12 +60,42 @@ Structured logging is better than using Console.WriteLine() because it records i
 This makes it easier to monitor the application, find errors, and troubleshoot problems in production environments.
 
 
+
 ## Endpoints
 
 | Method | Endpoint         | Description                    | Status Codes     |
 |--------|------------------|--------------------------------|------------------|
 | GET    | /api/jobs        | Get all job listings           | 200 OK           |
 | GET    | /api/jobs/{id}   | Get one job by ID              | 200 OK / 404     |
+
+
+## Authentication and Authorization
+
+### Stateless Authentication
+
+Session-based authentication stores user login information on the server. The server must remember each user's session.
+
+JWT-based authentication stores user information inside a token. The client sends the token with every request, and the server checks if the token is valid.
+
+Stateless authentication is useful when an API runs on multiple servers. Any server can validate the token, so requests do not need to go to the same server every time.
+
+### 401 Unauthorized vs 403 Forbidden
+
+A 401 Unauthorized response means the user is not logged in or did not provide a valid token.
+
+A 403 Forbidden response means the user is logged in, but does not have permission to perform the action.
+
+A 401 response is returned during authentication when the user's identity cannot be verified.
+
+A 403 response is returned during authorization when the user is authenticated but does not have the required role or permissions.
+
+### Token Storage
+
+Storing JWT tokens in localStorage can be risky because JavaScript can access localStorage. If an attacker injects malicious code into the application, they may be able to steal the token.
+
+A safer option is to store tokens in HttpOnly cookies. These cookies cannot be accessed by JavaScript, which helps protect the token from theft.
+
+
 
 ## Testing
 
