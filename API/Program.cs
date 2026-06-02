@@ -9,6 +9,8 @@ using Microsoft.IdentityModel.Tokens;
 // Used to convert the secret key into bytes
 using System.Text;
 using API.Services;
+using Microsoft.EntityFrameworkCore;
+using API.Data;
 
 
 Log.Logger = new LoggerConfiguration()
@@ -87,6 +89,14 @@ Builder.Services.AddAuthorization();
 
 // Register the authentication service
 Builder.Services.AddScoped<IAuthService, AuthService>();
+
+// Register the database context----------------------------------------------------------------
+Builder.Services.AddDbContext<CareerHubDbContext>(options =>
+{
+    // Connect EF Core to PostgreSQL
+    options.UseNpgsql(
+        Builder.Configuration.GetConnectionString("DefaultConnection"));
+});
 
 var app = Builder.Build();        //nothing can be registered after this
 
