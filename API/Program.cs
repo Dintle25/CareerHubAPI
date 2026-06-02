@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 // Used to convert the secret key into bytes
 using System.Text;
+using API.Services;
 
 
 Log.Logger = new LoggerConfiguration()
@@ -84,6 +85,8 @@ Builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 // Register authorization services
 Builder.Services.AddAuthorization();
 
+// Register the authentication service
+Builder.Services.AddScoped<IAuthService, AuthService>();
 
 var app = Builder.Build();        //nothing can be registered after this
 

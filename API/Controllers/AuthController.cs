@@ -1,23 +1,9 @@
-// Used for JWT claims
-using System.Security.Claims;
-
-// Used for JWT token creation
 using System.IdentityModel.Tokens.Jwt;
-
-// Used for encoding the secret key
-using System.Text;
-
-// Authentication attributes
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
-
-// MVC controller features
 using Microsoft.AspNetCore.Mvc;
-
-// JWT signing and validation classes
-using Microsoft.IdentityModel.Tokens;
-
-// Your DTOs namespace
 using API.DTOs;
+using API.Services;
 
 namespace API.Controllers;
 
@@ -25,81 +11,39 @@ namespace API.Controllers;
 [Route("api/[controller]")]
 public class AuthController : ControllerBase
 {
-    private readonly IConfiguration _configuration;
+    private readonly IAuthService _authService;
 
-    // Read values from appsettings
-    public AuthController(IConfiguration configuration)
+    // Inject the authentication service
+    public AuthController(IAuthService authService)
     {
-        _configuration = configuration;
+        _authService = authService;
     }
 
     [HttpPost("login")]
     public IActionResult Login([FromBody] LoginRequest request)
     {
+        // Ask the service to authenticate the user
+        var response = _authService.Login(request);
 
-        if (request.Username != "employer" ||
-            request.Password != "password123")
+        // Return 401 if credentials are invalid
+        if (response is null)
         {
-            // Return 401 if credentials are incorrect
             return Unauthorized();
         }
 
-
-        var claims = new[]
-        {
-            // Store the username in the token
-            new Claim(JwtRegisteredClaimNames.Sub, request.Username),
-
-            // Store the user's role
-            new Claim(ClaimTypes.Role, "Employer")
-        };
-
-
-     
-
-        //Read the secret key from appsettings
-        string jwtSecretKey = _configuration["Jwt:Key"]!;
-
-        // Convert the string key into a security key
-        var key = new SymmetricSecurityKey(
-            Encoding.UTF8.GetBytes(jwtSecretKey)
-        );
-
-
-        // Create signing credentials using HmacSha256
-        var creds = new SigningCredentials(
-            key,
-            SecurityAlgorithms.HmacSha256
-        );
-
-
-        var token = new JwtSecurityToken(
-            claims: claims,
-
-            // Token expires after 2 hours
-            expires: DateTime.UtcNow.AddHours(2),
-
-            // Sign the token
-            signingCredentials: creds
-        );
-
-        // Convert the token to a string
-        var tokenString = new JwtSecurityTokenHandler()
-            .WriteToken(token);
-
-        // Return the token to the client
-        return Ok(new LoginResponse(tokenString));
+        // Return the JWT token
+        return Ok(response);
     }
 
     [Authorize]
     [HttpGet("me")]
     public IActionResult GetCurrentUser()
     {
-        // Read username from the JWT claims
+        // Read username from JWT claims
         var username = User.FindFirstValue(
             JwtRegisteredClaimNames.Sub);
 
-        // Read role from the JWT claims
+        // Read role from JWT claims
         var role = User.FindFirstValue(
             ClaimTypes.Role);
 
