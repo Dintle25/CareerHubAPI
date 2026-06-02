@@ -54,8 +54,8 @@ Builder.Services.AddCors(options =>
     });
 });
 
-// Read the JWT secret key from appsettings
-var jwtSecretKey = "super-secret-key-that-must-be-very-long-for-hs256-to-work-securely!";
+
+string jwtSecretKey = Builder.Configuration["Jwt:Key"]!;
 
 // Configure JWT authentication
 Builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
