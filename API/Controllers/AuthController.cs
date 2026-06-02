@@ -25,11 +25,18 @@ namespace API.Controllers;
 [Route("api/[controller]")]
 public class AuthController : ControllerBase
 {
+    private readonly IConfiguration _configuration;
+
+    // Read values from appsettings
+    public AuthController(IConfiguration configuration)
+    {
+        _configuration = configuration;
+    }
 
     [HttpPost("login")]
     public IActionResult Login([FromBody] LoginRequest request)
     {
-        
+
         if (request.Username != "employer" ||
             request.Password != "password123")
         {
@@ -37,7 +44,7 @@ public class AuthController : ControllerBase
             return Unauthorized();
         }
 
-       
+
         var claims = new[]
         {
             // Store the username in the token
@@ -47,10 +54,17 @@ public class AuthController : ControllerBase
             new Claim(ClaimTypes.Role, "Employer")
         };
 
-       
+
+     
+
+        //Read the secret key from appsettings
+        string jwtSecretKey = _configuration["Jwt:Key"]!;
+
+        // Convert the string key into a security key
         var key = new SymmetricSecurityKey(
-            Encoding.UTF8.GetBytes("super-secret-key-that-must-be-very-long-for-hs256-to-work-securely!")
+            Encoding.UTF8.GetBytes(jwtSecretKey)
         );
+
 
         // Create signing credentials using HmacSha256
         var creds = new SigningCredentials(
@@ -58,7 +72,7 @@ public class AuthController : ControllerBase
             SecurityAlgorithms.HmacSha256
         );
 
-      
+
         var token = new JwtSecurityToken(
             claims: claims,
 
