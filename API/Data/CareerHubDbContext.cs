@@ -12,7 +12,7 @@ public class CareerHubDbContext(
     : DbContext(options)
 {
     // Represents the JobListings table
-    public DbSet<Job> JobListings => Set<Job>();
+    public DbSet<Job> Jobs => Set<Job>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -20,7 +20,7 @@ public class CareerHubDbContext(
         modelBuilder.Entity<Job>(entity =>
         {
             // Map to a lowercase PostgreSQL table name
-            entity.ToTable("joblistings");
+            entity.ToTable("jobs");
 
             // Configure the primary key
             entity.HasKey(j => j.Id);

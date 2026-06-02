@@ -9,7 +9,7 @@ public class Job
     public string Location { get; set; } = string.Empty;
     public JobType Type { get; set; } 
 
-    public DateTime PostedAt { get; set; }
+    public DateTime PostedAt { get; set; } = DateTime.UtcNow;
     public bool IsActive { get; set; }
 
     public Job(Guid id, string title, string description, string company, string location, JobType type)
