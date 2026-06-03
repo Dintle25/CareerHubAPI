@@ -196,4 +196,8 @@ public class CareerHubDbContext(
 
 
     }
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+    {
+        optionsBuilder.LogTo(Console.WriteLine, LogLevel.Information);
+    }
 }

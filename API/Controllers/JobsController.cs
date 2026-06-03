@@ -24,13 +24,39 @@ public class JobsController : ControllerBase
     public async Task<ActionResult<IEnumerable<Job>>> GetJobsAsync()
     {
 
-        // Get all jobs from database
-        var jobs = await _context.Jobs.ToListAsync();
+        // Get all jobs from database----------------------------------------eager
+        // // var jobs = await _context.Jobs.ToListAsync();
+
+        // var jobs = await _context.Jobs
+        // .Include(j => j.Company)
+        // .ToListAsync();
+
+        var jobs = await _context.Jobs
+    .AsNoTracking()
+    .Select(j => new JobResponse
+    {
+        Id = j.Id,
+        Title = j.Title,
+        Description = j.Description,
+        Location = j.Location,
+        Type = j.Type,
+        PostedAt = j.PostedAt,
+        IsActive = j.IsActive,
+
+        Company = j.Company.Name,
+
+        SalaryDisplay = "N/A",
+
+        // IMPORTANT: computed in SQL, not memory
+        // (EF translates this to COUNT(*))
+        ApplicationCount = j.Applications.Count()
+    })
+    .ToListAsync();
 
         return Ok(jobs);
     }
 
-    [HttpGet("{id}", Name ="GetJobById")]
+    [HttpGet("{id}", Name = "GetJobById")]
     public async Task<ActionResult> GetJobByIdAsync(Guid id)
     {
         // Find job in database by primary key
@@ -50,26 +76,36 @@ public class JobsController : ControllerBase
     public async Task<ActionResult<JobResponse>> CreateJobAsync([FromBody] CreateJobRequest request)
     {
         await Task.Delay(50); // will replace with an actual database call 
+        var company = await _context.Companies.FindAsync(request.CompanyId);
+
+        if (company == null)
+        {
+            return BadRequest("Company does not exist.");
+        }
 
         // Check for duplicate job (database query instead of memory list)
+        // var exists = await _context.Jobs.AnyAsync(j =>
+        // j.Title.ToLower() == request.Title.ToLower() &&
+        // j.Company.ToLower() == request.Company.ToLower());
         var exists = await _context.Jobs.AnyAsync(j =>
         j.Title.ToLower() == request.Title.ToLower() &&
-        j.Company.ToLower() == request.Company.ToLower());
+        j.CompanyId == request.CompanyId);
 
         if (exists)
         {
             throw new DuplicateJobListingException(
-            request.Company,
+            company.Name,
             request.Title);
         }
 
+        
 
         //2. Map received DTO to actual Domain Model
         var newJob = new Job(
             Guid.NewGuid(),
             request.Title,
             request.Description,
-            request.Company,
+            company,
             request.Location,
             request.Type);
 
@@ -85,17 +121,17 @@ public class JobsController : ControllerBase
         var response = ToJobResponse(newJob);
 
 
-    //     return CreatedAtAction(
-    //     nameof(GetJobByIdAsync),
-    //      new { id = newJob.Id },
-    //      response);
-    //    //Return 201 Created with the response body
-    //  // return StatusCode(StatusCodes.Status201Created, response);
+        //     return CreatedAtAction(
+        //     nameof(GetJobByIdAsync),
+        //      new { id = newJob.Id },
+        //      response);
+        //    //Return 201 Created with the response body
+        //  // return StatusCode(StatusCodes.Status201Created, response);
 
-      return CreatedAtRoute(
-    "GetJobById",
-    new { id = newJob.Id },
-    response);
+        return CreatedAtRoute(
+      "GetJobById",
+      new { id = newJob.Id },
+      response);
 
     }
 
@@ -117,7 +153,15 @@ public class JobsController : ControllerBase
 
         job.Title = request.Title;
         job.Description = request.Description;
-        job.Company = request.Company;
+        var company = await _context.Companies.FindAsync(request.CompanyId);
+
+        if (company == null)
+        {
+            return BadRequest("Company does not exist.");
+        }
+
+        job.Company = company;
+        job.CompanyId = company.Id;
         job.Location = request.Location;
         job.Type = request.Type;
 

@@ -12,7 +12,7 @@ public record UpdateJobRequest
     [Required]
     [MinLength(2)]
     [MaxLength(80)]
-    public string Company { get; set; }
+    public Guid CompanyId { get; set; }
 
     [Required]
     public string Location { get; set; } 
