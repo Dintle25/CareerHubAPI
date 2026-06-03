@@ -75,6 +75,7 @@ public static class SeedData
             }
         };
 
+        // Add all sample jobs to the change tracker.
         db.Jobs.AddRange(jobs);
 
         // Save all jobs to the database.
