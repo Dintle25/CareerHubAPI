@@ -10,4 +10,14 @@ public class Company
 
     // One company can have many jobs
     public ICollection<Job> Jobs { get; set; } = new List<Job>();
+
+    internal string ToLower()
+    {
+        throw new NotImplementedException();
+    }
+
+    public static implicit operator Company(string v)
+    {
+        throw new NotImplementedException();
+    }
 }
