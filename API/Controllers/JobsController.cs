@@ -3,54 +3,56 @@ using API.Models;
 using API.Data;
 using API.DTOs;
 using API.Exceptions;
-using Microsoft.AspNetCore.Authorization;
+using Microsoft.EntityFrameworkCore;
 
 [ApiController]
 [Route("api/[controller]")]
 public class JobsController : ControllerBase
 {
     //private Job newJob;
+    // Database context (replaces JobStore)
+    private readonly CareerHubDbContext _context;
+
+    // Inject DbContext
+    public JobsController(CareerHubDbContext context)
+    {
+        _context = context;
+    }
 
     [HttpGet]
     public async Task<ActionResult<IEnumerable<Job>>> GetJobsAsync()
     {
 
-        await Task.Delay(200);
+        // Get all jobs from database
+        var jobs = await _context.Jobs.ToListAsync();
 
-        // var jobs = new List<Job>();  
-
-        // if (!jobs.Any())
-        //     return NotFound();
-
-        return Ok(JobStore.Jobs);
+        return Ok(jobs);
     }
 
-[HttpGet("{id}")]
+    [HttpGet("{id}")]
     public async Task<ActionResult> GetJobByIdAsync(Guid id)
     {
-        await Task.Delay(200);
+        // Find job in database by primary key
+        var job = await _context.Jobs.FindAsync(id);
 
-       var job = JobStore.Jobs.FirstOrDefault(j => j.Id == id);
+        if (job is null)
+        {
+            throw new JobNotFoundException(id);
+        }
 
-    if (job is null)
-    {
-        throw new JobNotFoundException(id);
+        return Ok(job);
     }
 
-    return Ok(job);
-    }
-
-//POST--------------------------------------------------------------------------------------------------------------
-[Authorize(Roles = "Employer")]
-[HttpPost]
-   public async Task<ActionResult<JobResponse>> CreateBookingAsync([FromBody] CreateJobRequest request)
+    //POST--------------------------------------------------------------------------------------------------------------
+    [HttpPost]
+    public async Task<ActionResult<JobResponse>> CreateBookingAsync([FromBody] CreateJobRequest request)
     {
         await Task.Delay(50); // will replace with an actual database call 
 
-        // Check for duplicate (case-insensitive)
-        var exists = JobStore.Jobs.Any(j =>
-            j.Title.Equals(request.Title, StringComparison.OrdinalIgnoreCase) &&
-            j.Company.Equals(request.Company, StringComparison.OrdinalIgnoreCase));
+        // Check for duplicate job (database query instead of memory list)
+        var exists = await _context.Jobs.AnyAsync(j =>
+        j.Title.ToLower() == request.Title.ToLower() &&
+        j.Company.ToLower() == request.Company.ToLower());
 
         if (exists)
         {
@@ -61,7 +63,7 @@ public class JobsController : ControllerBase
 
 
         //2. Map received DTO to actual Domain Model
-        var newJob =  new Job(
+        var newJob = new Job(
             Guid.NewGuid(),
             request.Title,
             request.Description,
@@ -69,61 +71,70 @@ public class JobsController : ControllerBase
             request.Location,
             request.Type);
 
-    
-        JobStore.Jobs.Add(newJob); 
-        
+        // Add to change tracker
+        _context.Jobs.Add(newJob);
 
-        //4. Map Domain Model to to Response DTO
-        var response = new JobResponse(
-        
-        ); 
+        //JobStore.Jobs.Add(newJob);
+
+        // Save to database
+        await _context.SaveChangesAsync();
+
+        // Map Entity → DTO
+        var response = ToJobResponse(newJob);
+
 
         return CreatedAtAction(
-            nameof(GetJobByIdAsync),
-            new { id = newJob.Id },
-            response);
+    nameof(GetJobByIdAsync),
+    new { id = newJob.Id },
+    response);
     }
 
-// put--------------------------------------------------------------------------------------------------------------------------
-[Authorize(Roles = "Employer")]
+    // put--------------------------------------------------------------------------------------------------------------------------
     [HttpPut("{id}")]
     public async Task<ActionResult<JobResponse>> UpdateJobAsync(Guid id, [FromBody] UpdateJobRequest request)
     {
-        await Task.Delay(100);
+        var job = await _context.Jobs.FindAsync(id);
 
-        var job = JobStore.Jobs.FirstOrDefault(j => j.Id == id);
+
+        // var job = JobStore.Jobs.FirstOrDefault(j => j.Id == id);
+        // if (job == null)
+        //     throw new JobNotFoundException(id);
+
+
         if (job == null)
-             throw new JobNotFoundException(id);
+            throw new JobNotFoundException(id);
 
-     
         job.Title = request.Title;
         job.Description = request.Description;
         job.Company = request.Company;
         job.Location = request.Location;
         job.Type = request.Type;
 
-        var response = ToJobResponse(job);
-        return Ok(response);       
+        // Save changes (EF tracks updates automatically)
+        await _context.SaveChangesAsync();
+
+        return Ok(ToJobResponse(job));
     }
 
     // delete----------------------------------------------------------------------------------------------------------------
-    [Authorize(Roles = "Employer")]
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteJob(Guid id)
     {
-        await Task.Delay(50);
+        var job = await _context.Jobs.FindAsync(id);
 
-        var job = JobStore.Jobs.FirstOrDefault(j => j.Id == id);
-        if (job == null)
-            throw new JobNotFoundException(id);     
+    if (job == null)
+        throw new JobNotFoundException(id);
 
-        JobStore.Jobs.Remove(job);
-        return NoContent();
+    _context.Jobs.Remove(job);
+
+    await _context.SaveChangesAsync();
+
+    return NoContent();
     }
 
 
 
-private static JobResponse ToJobResponse(Job job)
+    private static JobResponse ToJobResponse(Job job)
     {
         return new JobResponse
         {
@@ -135,7 +146,7 @@ private static JobResponse ToJobResponse(Job job)
             Type = job.Type,
             PostedAt = job.PostedAt,
             IsActive = job.IsActive,
-            SalaryDisplay = "Salary not specified" 
+            SalaryDisplay = "Salary not specified"
         };
     }
 

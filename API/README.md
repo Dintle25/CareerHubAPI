@@ -96,6 +96,31 @@ Storing JWT tokens in localStorage can be risky because JavaScript can access lo
 A safer option is to store tokens in HttpOnly cookies. These cookies cannot be accessed by JavaScript, which helps protect the token from theft.
 
 
+## Entity Framework Core Notes
+1. The Change Tracker
+
+EF Core uses a change tracker to keep track of changes made to objects after they are loaded from the database.
+
+For example, when a job is loaded and its title or description is changed, EF Core remembers those changes. When SaveChangesAsync() is called, EF Core checks what has changed and updates the database.
+
+SaveChangesAsync() is called once at the end of an operation because it is more efficient. Instead of sending a database request for every property change, EF Core saves all changes in a single database operation.
+
+2. Migrations as Version Control
+
+Migration files should always be committed to source control together with the code that created them.
+
+Migrations keep track of changes made to the database structure, such as creating tables, adding columns, or creating indexes.
+
+If a teammate pulls the latest code but does not have the migration file or has not applied the migration, their database structure may not match the application code. This can cause errors when the application tries to access tables or columns that do not exist in their database.
+
+3. Connection String Security
+
+The connection string is stored in appsettings.Development.json because it contains sensitive information such as the database username and password.
+
+It should not be placed in appsettings.json because that file is usually committed to source control and shared with other developers.
+
+In a production environment, a safer approach is to store connection strings in environment variables or a secure secrets management service. This helps keep database credentials private and reduces the risk of exposing them in source control.
+
 
 ## Testing
 
