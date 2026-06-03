@@ -61,28 +61,55 @@ Builder.Services.AddCors(options =>
 string jwtSecretKey = Builder.Configuration["Jwt:Key"]!;
 
 // Configure JWT authentication
+// Builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+//     .AddJwtBearer(options =>
+//     {
+//         options.TokenValidationParameters = new TokenValidationParameters
+//         {
+//             // Check if the token has expired
+//             ValidateLifetime = true,
+
+//             // Check if the signing key is valid
+//             ValidateIssuerSigningKey = true,
+
+//             // Issuer validation is not required for this assignment
+//             ValidateIssuer = false,
+
+//             // Audience validation is not required for this assignment
+//             ValidateAudience = false,
+
+//             // Create the security key from the appsettings value
+//             IssuerSigningKey = new SymmetricSecurityKey(
+//                 Encoding.UTF8.GetBytes(jwtSecretKey))
+//         };
+//     });
+
+
 Builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
         options.TokenValidationParameters = new TokenValidationParameters
         {
-            // Check if the token has expired
             ValidateLifetime = true,
-
-            // Check if the signing key is valid
             ValidateIssuerSigningKey = true,
-
-            // Issuer validation is not required for this assignment
             ValidateIssuer = false,
-
-            // Audience validation is not required for this assignment
             ValidateAudience = false,
-
-            // Create the security key from the appsettings value
             IssuerSigningKey = new SymmetricSecurityKey(
                 Encoding.UTF8.GetBytes(jwtSecretKey))
         };
+
+        // Show JWT validation errors in the terminal
+        options.Events = new JwtBearerEvents
+        {
+            OnAuthenticationFailed = context =>
+            {
+                Console.WriteLine("JWT ERROR:");
+                Console.WriteLine(context.Exception.Message);
+                return Task.CompletedTask;
+            }
+        };
     });
+
 
 // Register authorization services
 Builder.Services.AddAuthorization();
