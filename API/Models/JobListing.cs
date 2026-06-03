@@ -2,17 +2,23 @@ namespace API.Models;
 
 public class Job
 {
-    public Guid Id { get; set; } 
+    public Guid Id { get; set; }
+
     public string Title { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
-    public string Company { get; set; } = string.Empty;
+    //public string Company { get; set; } = string.Empty;
+    // Foreign key to Company
+    public Guid CompanyId { get; set; }
+
+    // Navigation property
+    public Company Company { get; set; } = null!;
     public string Location { get; set; } = string.Empty;
-    public JobType Type { get; set; } 
+    public JobType Type { get; set; }
 
     public DateTime PostedAt { get; set; } = DateTime.UtcNow;
     public bool IsActive { get; set; }
 
-    public Job(Guid id, string title, string description, string company, string location, JobType type)
+    public Job(Guid id, string title, string description, Company company, string location, JobType type)
     {
         Id = id;
         Title = title;
@@ -26,6 +32,10 @@ public class Job
         IsActive = true;
     }
     public Job()
-{
-}
+    {
+    }
+
+    // Applications received for this job
+    public ICollection<Application> Applications { get; set; }
+        = new List<Application>();
 }
