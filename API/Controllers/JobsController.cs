@@ -4,6 +4,7 @@ using API.Data;
 using API.DTOs;
 using API.Exceptions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authorization;
 
 [ApiController]
 [Route("api/[controller]")]
@@ -29,7 +30,7 @@ public class JobsController : ControllerBase
         return Ok(jobs);
     }
 
-    [HttpGet("{id}")]
+    [HttpGet("{id}", Name ="GetJobById")]
     public async Task<ActionResult> GetJobByIdAsync(Guid id)
     {
         // Find job in database by primary key
@@ -44,8 +45,9 @@ public class JobsController : ControllerBase
     }
 
     //POST--------------------------------------------------------------------------------------------------------------
+    //[Authorize(Roles = "employer")]
     [HttpPost]
-    public async Task<ActionResult<JobResponse>> CreateBookingAsync([FromBody] CreateJobRequest request)
+    public async Task<ActionResult<JobResponse>> CreateJobAsync([FromBody] CreateJobRequest request)
     {
         await Task.Delay(50); // will replace with an actual database call 
 
@@ -83,13 +85,22 @@ public class JobsController : ControllerBase
         var response = ToJobResponse(newJob);
 
 
-        return CreatedAtAction(
-    nameof(GetJobByIdAsync),
+    //     return CreatedAtAction(
+    //     nameof(GetJobByIdAsync),
+    //      new { id = newJob.Id },
+    //      response);
+    //    //Return 201 Created with the response body
+    //  // return StatusCode(StatusCodes.Status201Created, response);
+
+      return CreatedAtRoute(
+    "GetJobById",
     new { id = newJob.Id },
     response);
+
     }
 
     // put--------------------------------------------------------------------------------------------------------------------------
+    //[Authorize(Roles = "employer")]
     [HttpPut("{id}")]
     public async Task<ActionResult<JobResponse>> UpdateJobAsync(Guid id, [FromBody] UpdateJobRequest request)
     {
@@ -117,19 +128,20 @@ public class JobsController : ControllerBase
     }
 
     // delete----------------------------------------------------------------------------------------------------------------
+    //[Authorize(Roles = "employer")]
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteJob(Guid id)
     {
         var job = await _context.Jobs.FindAsync(id);
 
-    if (job == null)
-        throw new JobNotFoundException(id);
+        if (job == null)
+            throw new JobNotFoundException(id);
 
-    _context.Jobs.Remove(job);
+        _context.Jobs.Remove(job);
 
-    await _context.SaveChangesAsync();
+        await _context.SaveChangesAsync();
 
-    return NoContent();
+        return NoContent();
     }
 
 
