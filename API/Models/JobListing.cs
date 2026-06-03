@@ -25,4 +25,7 @@ public class Job
         PostedAt = DateTime.UtcNow;
         IsActive = true;
     }
+    public Job()
+{
+}
 }
