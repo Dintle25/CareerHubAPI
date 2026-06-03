@@ -122,6 +122,46 @@ It should not be placed in appsettings.json because that file is usually committ
 In a production environment, a safer approach is to store connection strings in environment variables or a secure secrets management service. This helps keep database credentials private and reduces the risk of exposing them in source control.
 
 
+
+# Assignment 2.2 – Relationship Design
+
+## Which relationships are one-to-many and which require a join entity?
+
+A Company can have many Job Listings, but each Job Listing belongs to only one Company. This is a one-to-many relationship.
+
+A Job Listing can receive many Applications, and an Applicant can apply for many Job Listings. This is a many-to-many relationship. To represent this relationship, an Application entity is needed as a join entity between Applicant and Job Listing.
+
+## Why can the application relationship not be represented by a hidden join table?
+
+The Application relationship stores important information about each application. For example, it stores the date the application was submitted and the current application status.
+
+Because the relationship contains its own data, it cannot be represented by a hidden join table. An explicit Application entity is required so that these details can be stored and managed.
+
+## What should happen if a Company is deleted?
+
+A Company should not be deleted if it still has Job Listings linked to it.
+
+Deleting a Company could remove important job information and application history. It is safer to prevent deletion until all related Job Listings have been removed or reassigned.
+
+This helps protect data integrity and prevents accidental data loss.
+
+## Application Status Values
+
+The application status can be represented using a C# enum.
+
+Example values:
+
+* Submitted
+* UnderReview
+* InterviewScheduled
+* Accepted
+* Rejected
+
+Using an enum ensures that only valid status values can be used.
+
+
+
+
 ## Testing
 
 You can test the API using Scalar UI in your browser:
