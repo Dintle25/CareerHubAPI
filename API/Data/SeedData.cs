@@ -7,9 +7,20 @@ public static class SeedData
 {
     public static async Task SeedAsync(CareerHubDbContext db)
     {
-     
-        if (await db.Jobs.AnyAsync())
+
+
+        if (await db.Companies.AnyAsync())
             return;
+         
+          var company = new Company
+        {
+            Id = Guid.NewGuid(),
+            Name = "Default Company",
+            Description = "Seed company"
+        };
+
+        db.Companies.Add(company);
+        await db.SaveChangesAsync();
 
         // Sample jobs for testing and demonstrations.
         var jobs = new List<Job>
@@ -80,5 +91,7 @@ public static class SeedData
 
         // Save all jobs to the database.
         await db.SaveChangesAsync();
+
+        
     }
 }
