@@ -160,6 +160,22 @@ Example values:
 Using an enum ensures that only valid status values can be used.
 
 
+## N+1 Problem
+
+Before fixing the loading strategy, the terminal showed multiple SQL queries when loading jobs and their related company information. One query loaded the jobs, and additional queries loaded the related companies.
+
+After fixing the loading strategy with eager loading, only one SQL query was executed. The query used a JOIN to load the required data at the same time.
+
+The unfixed version is dangerous in production because the number of database queries grows as more records are returned. This can slow down the application and put unnecessary load on the database.
+
+
+## Read vs Write Queries
+
+A GET endpoint only reads data and does not make changes. For these queries, I used AsNoTracking() because EF Core does not need to track changes. This improves performance and uses less memory.
+
+A write operation such as PUT or DELETE should use change tracking because EF Core needs to detect changes and save them to the database.
+
+If AsNoTracking() is used when loading an entity for an update, EF Core will not track the changes made to that entity. SaveChangesAsync() may complete successfully, but the updates will not be written to the database, causing a silent data loss bug.
 
 
 ## Testing
