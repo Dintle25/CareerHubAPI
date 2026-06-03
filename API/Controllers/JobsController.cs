@@ -153,7 +153,7 @@ public class JobsController : ControllerBase
             Id = job.Id,
             Title = job.Title,
             Description = job.Description,
-            Company = job.Company,
+            Company = job.Company.Name,
             Location = job.Location,
             Type = job.Type,
             PostedAt = job.PostedAt,
