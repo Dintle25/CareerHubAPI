@@ -1,6 +1,7 @@
 using API.Data;
 using API.DTOs;
 using API.Models;
+using API.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -8,86 +9,50 @@ using Microsoft.EntityFrameworkCore;
 [Route("api/[controller]")]
 public class ApplicationsController : ControllerBase
 {
-    private readonly CareerHubDbContext _context;
+    //private readonly CareerHubDbContext _context;
+    private readonly IApplicationService _applicationService;
 
-    public ApplicationsController(CareerHubDbContext context)
+    public ApplicationsController(
+        IApplicationService applicationService)
     {
-        _context = context;
+        _applicationService = applicationService;
     }
+
+    // public ApplicationsController(CareerHubDbContext context)
+    // {
+    //     _context = context;
+    // }
+
+    // [HttpGet]
+    // public async Task<IActionResult> GetAll()
+    // {
+    //     var applications = await _context.Applications
+    //         .Include(a => a.Applicant)
+    //         .Include(a => a.Job)
+    //         .AsNoTracking()
+    //         .ToListAsync();
+
+    //     return Ok(applications);
+    // }
 
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
-        var applications = await _context.Applications
-            .Include(a => a.Applicant)
-            .Include(a => a.Job)
-            .AsNoTracking()
-            .ToListAsync();
+        var applications =
+            await _applicationService.GetAllAsync();
 
         return Ok(applications);
     }
 
 
     [HttpPost]
-    public async Task<ActionResult<ApplicationResponse>> CreateApplicationAsync(
-        [FromBody] CreateApplicationRequest request)
+    public async Task<IActionResult> Create(
+      CreateApplicationRequest request)
     {
-        // Check that the applicant exists
-        var applicant = await _context.Applicants
-            .FindAsync(request.ApplicantId);
+        var application =
+            await _applicationService.CreateAsync(request);
 
-        if (applicant == null)
-        {
-            return BadRequest("Applicant does not exist.");
-        }
-
-        // Check that the job exists
-        var job = await _context.Jobs
-            .FindAsync(request.JobId);
-
-        if (job == null)
-        {
-            return BadRequest("Job does not exist.");
-        }
-
-        // Prevent duplicate applications
-        var exists = await _context.Applications
-            .AnyAsync(a =>
-                a.ApplicantId == request.ApplicantId &&
-                a.JobId == request.JobId);
-
-        if (exists)
-        {
-            return Conflict(
-                "This applicant has already applied for this job.");
-        }
-
-        // Create application
-        var application = new Application
-        {
-            ApplicantId = request.ApplicantId,
-            JobId = request.JobId,
-            AppliedAt = DateTime.UtcNow,
-            Status = ApplicationStatus.Submitted
-        };
-
-        _context.Applications.Add(application);
-
-        await _context.SaveChangesAsync();
-
-        // Build response DTO
-        var response = new ApplicationResponse
-        {
-            ApplicantId = application.ApplicantId,
-            JobId = application.JobId,
-            AppliedAt = application.AppliedAt,
-            Status = application.Status,
-            ApplicantName =
-                $"{applicant.FirstName} {applicant.LastName}",
-            JobTitle = job.Title
-        };
-
-        return Ok(response);
+        return Ok(application);
     }
 
     // [HttpPost]

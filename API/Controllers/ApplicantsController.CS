@@ -1,6 +1,7 @@
 using API.Data;
 using API.DTOs;
 using API.Models;
+using API.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -8,23 +9,32 @@ using Microsoft.EntityFrameworkCore;
 [Route("api/[controller]")]
 public class ApplicantsController : ControllerBase
 {
-private readonly CareerHubDbContext _context;
+//private readonly CareerHubDbContext _context;
+private readonly IApplicantService _applicantService;
 
-public ApplicantsController(CareerHubDbContext context)
+public ApplicantsController(
+    IApplicantService applicantService)
 {
-    _context = context;
+    _applicantService = applicantService;
 }
+
+// public ApplicantsController(CareerHubDbContext context)
+// {
+//     _context = context;
+// }
 
 [HttpGet]
 public async Task<IActionResult> GetAll()
 {
-    return Ok(await _context.Applicants.ToListAsync());
+    return Ok(
+        await _applicantService.GetAllAsync());
 }
 
 [HttpGet("{id}")]
 public async Task<IActionResult> GetById(Guid id)
 {
-    var applicant = await _context.Applicants.FindAsync(id);
+    var applicant =
+        await _applicantService.GetByIdAsync(id);
 
     if (applicant == null)
         return NotFound();
@@ -32,7 +42,7 @@ public async Task<IActionResult> GetById(Guid id)
     return Ok(applicant);
 }
 
-[HttpPost]
+// [HttpPost]
 // public async Task<IActionResult> Create(Applicant applicant)
 // {
 //     applicant.Id = Guid.NewGuid();
@@ -45,27 +55,16 @@ public async Task<IActionResult> GetById(Guid id)
 //         applicant);
 // }
 
+[HttpPost]
 public async Task<IActionResult> Create(
     CreateApplicantRequest request)
 {
-    var applicant = new Applicant
-    {
-        Id = Guid.NewGuid(),
-        FirstName = request.FirstName,
-        LastName = request.LastName,
-        Email = request.Email
-    };
+    var applicant =
+        await _applicantService.CreateAsync(request);
 
-    _context.Applicants.Add(applicant);
-
-    await _context.SaveChangesAsync();
-
-    return Ok(new ApplicantResponse
-    {
-        Id = applicant.Id,
-        FirstName = applicant.FirstName,
-        LastName = applicant.LastName,
-        Email = applicant.Email
-    });
+    return CreatedAtAction(
+        nameof(GetById),
+        new { id = applicant.Id },
+        applicant);
 }
 }
