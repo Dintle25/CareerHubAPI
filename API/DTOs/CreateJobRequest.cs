@@ -11,8 +11,8 @@ public record CreateJobRequest
     public string Title { get; set; } 
 
     [Required(ErrorMessage = "Company is required")]
-    [MinLength(2, ErrorMessage = "Company must be at least 2 characters")]
-    [MaxLength(80, ErrorMessage = "Company cannot exceed 80 characters")]
+    // [MinLength(2, ErrorMessage = "Company must be at least 2 characters")]
+    // [MaxLength(80, ErrorMessage = "Company cannot exceed 80 characters")]
     //public string Company { get; set; }
     public Guid CompanyId { get; set; }
 
