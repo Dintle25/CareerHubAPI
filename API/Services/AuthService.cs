@@ -59,6 +59,8 @@ public class AuthService : IAuthService
 
         // Create the JWT token
         var token = new JwtSecurityToken(
+            issuer: null,           // Explicitly null since validation is off
+        audience: null,
             claims: claims,
 
             // Token expires after 2 hours
