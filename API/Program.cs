@@ -11,6 +11,7 @@ using System.Text;
 using API.Services;
 using Microsoft.EntityFrameworkCore;
 using API.Data;
+using API.Extensions;
 
 
 Log.Logger = new LoggerConfiguration()
@@ -115,7 +116,11 @@ Builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 Builder.Services.AddAuthorization();
 
 // Register the authentication service
-Builder.Services.AddScoped<IAuthService, AuthService>();
+Builder.Services.AddApplicationServices();
+// Builder.Services.AddScoped<IAuthService, AuthService>();
+// Builder.Services.AddScoped<ICompanyService, CompanyService>();
+// Builder.Services.AddScoped<IApplicantService, ApplicantService>();
+// Builder.Services.AddScoped<IApplicationService, ApplicationService>();
 
 // Register the database context----------------------------------------------------------------
 Builder.Services.AddDbContext<CareerHubDbContext>(options =>
