@@ -8,3 +8,5 @@ public interface ICompanyService
     Task<CompanyResponse?> GetByIdAsync(Guid id);
     Task<CompanyResponse> CreateAsync(CreateCompanyRequest request);
 }
+
+
