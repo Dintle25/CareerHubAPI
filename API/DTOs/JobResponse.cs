@@ -10,6 +10,7 @@ public record JobResponse
     public string Company { get; set; }
     public string Location { get; set; } 
     public JobType Type { get; set; }
+    public DateTime ClosingDate { get; set; }
     public DateTime PostedAt { get; set; }
     public bool IsActive { get; set; }
     public string SalaryDisplay { get; set; } 

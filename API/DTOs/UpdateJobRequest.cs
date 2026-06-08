@@ -26,6 +26,9 @@ public record UpdateJobRequest
     [RegularExpression("^(FullTime|PartTime|Contract|Internship)$")]
     public JobType Type { get; set; }
 
+    [Required]
+    public DateTime ClosingDate { get; set; }
+
     [Range(1, double.MaxValue)]
     public decimal? SalaryMin { get; set; }
 

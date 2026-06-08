@@ -30,6 +30,9 @@ public record CreateJobRequest
     
     public JobType Type { get; set; }
 
+    [Required(ErrorMessage = "Type is required")]
+    public DateTime ClosingDate { get; set; }
+
     [Range(1, double.MaxValue, ErrorMessage = "SalaryMin must be greater than 0")]
     public decimal? SalaryMin { get; set; }
 

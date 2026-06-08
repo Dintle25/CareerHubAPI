@@ -178,6 +178,147 @@ A write operation such as PUT or DELETE should use change tracking because EF Co
 If AsNoTracking() is used when loading an entity for an update, EF Core will not track the changes made to that entity. SaveChangesAsync() may complete successfully, but the updates will not be written to the database, causing a silent data loss bug.
 
 
+# Assignment 2.3
+# Part 1 – Architecture Decisions
+
+## 1. Boundary Decisions
+
+I chose to use separate repositories for each main entity:
+
+* JobRepository
+* CompanyRepository
+* ApplicationRepository
+
+This keeps each repository responsible for one part of the system and makes the code easier to maintain.
+
+When the ApplicationService creates a new application, it must first check whether the job exists. That validation is performed by calling the JobRepository because the JobRepository owns all job-related data. The ApplicationRepository should only manage application data and should not be responsible for job queries.
+
+If repositories access data that belongs to other repositories, responsibilities become unclear and the code becomes harder to maintain.
+
+## 2. Return Types
+
+Repository methods should not return IQueryable<T>.
+
+Returning IQueryable<T> exposes database query details to the service layer and breaks the repository abstraction. The service layer would need knowledge of Entity Framework and LINQ query construction, which should remain inside the repository.
+
+Instead, repositories should return completed results such as entities or collections. This keeps the service layer independent from the data access technology.
+
+## 3. Lifetime Choices
+
+## CareerHubDbContext – Scoped
+
+A DbContext should be Scoped so that each HTTP request gets its own instance.
+
+If it is Singleton, multiple requests would share the same DbContext, which can cause data corruption and threading problems.
+
+If it is Transient, multiple DbContext instances could be created during one request, making tracking and saving changes difficult.
+
+## JobListingService – Scoped
+
+The service works with the DbContext and should therefore use the same lifetime.
+
+If it is Singleton, it may try to use a DbContext that has already been disposed.
+
+## ApplicationRepository – Scoped
+
+The repository depends on the DbContext and should use the same lifetime.
+
+Using Singleton could lead to database and threading issues.
+
+## ApplicationStatusCache – Singleton
+
+The cache stores status transition rules in memory and does not depend on request-specific data.
+
+Using Singleton allows the same cached data to be shared by the whole application.
+
+Using Scoped or Transient would create unnecessary copies and waste memory.
+
+## 4. Status Transitions
+
+Status transition validation belongs in the Service layer.
+
+The service layer contains the business rules of the application. It can check whether a transition is valid before updating the application.
+
+Putting this validation in the Controller is not ideal because controllers should only handle HTTP requests and responses. Business rules would become duplicated if multiple controllers need the same validation.
+
+Putting this validation in the Repository is also incorrect because repositories should only handle database operations. They should not contain business logic.
+
+The Service layer is the correct place because it sits between the controller and repository and is responsible for enforcing business rules consistently.
+
+
+# CareerHub API — DI Registration
+
+## How services are registered
+
+All services and repositories are registered in one file:
+`Infrastructure/ServiceCollectionExtensions.cs`
+
+`Program.cs` calls a single method:
+
+builder.Services.AddCareerHubServices();
+
+
+Program.cs does not contain a single `AddScoped`, `AddTransient`, or
+AddSingleton call for any application service or repository.
+
+
+`ValidateOnBuild = true` means the app inspects the entire dependency graph
+the moment it starts. If anything is wrong, it refuses to start and prints
+exactly which service is misconfigured.
+
+
+## Lifetime mismatch experiment
+
+### Step 1 — Introduce the mismatch
+
+In `Infrastructure/ServiceCollectionExtensions.cs`, the `AddJobServices`
+method was temporarily changed to register `JobService` as a **singleton**
+while `IJobRepository` (which wraps a scoped `DbContext`) remained scoped:
+
+
+### Step 2 — The error at startup
+
+When the app tried to start, it printed this error and immediately stopped:
+
+```
+System.AggregateException: Some services are not able to be constructed
+(Error while validating the service descriptor
+'ServiceType: API.Services.IJobService Lifetime: Singleton
+ImplementationType: API.Services.JobService':
+Cannot consume scoped service 'API.Repositories.IJobRepository'
+from singleton 'API.Services.IJobService'.)
+```
+
+The app did not start. No requests were served.
+
+### Why this is a problem
+
+A singleton lives for the entire lifetime of the app.
+A scoped service lives only for one HTTP request.
+If a singleton holds a reference to a scoped service, that scoped service
+gets stuck alive for the whole app lifetime — it never gets cleaned up.
+This causes stale database connections and unpredictable bugs.
+
+### Step 3 — The fix
+
+Change `AddSingleton` back to `AddScoped`:
+
+
+The app started normally after this change.
+
+
+## Rule: nothing in Program.cs
+
+`Program.cs` is only allowed to call the top-level extension methods.
+Any new service you add goes into `ServiceCollectionExtensions.cs` under
+the right feature area (or a new one if needed). This keeps `Program.cs`
+short and makes it easy to see all registrations in one place.
+
+## Controller Line Count
+Both controllers use constructor injection via primary constructors and
+delegate everything to the service layer. Every action is at most five
+lines: one to call the service, one to return the result.
+
 ## Testing
 
 You can test the API using Scalar UI in your browser:

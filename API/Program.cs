@@ -11,7 +11,7 @@ using System.Text;
 using API.Services;
 using Microsoft.EntityFrameworkCore;
 using API.Data;
-using API.Extensions;
+using API.Infrastructure;
 
 
 Log.Logger = new LoggerConfiguration()
@@ -116,7 +116,7 @@ Builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 Builder.Services.AddAuthorization();
 
 // Register the authentication service
-Builder.Services.AddApplicationServices();
+Builder.Services.AddCareerHubServices();
 // Builder.Services.AddScoped<IAuthService, AuthService>();
 // Builder.Services.AddScoped<ICompanyService, CompanyService>();
 // Builder.Services.AddScoped<IApplicantService, ApplicantService>();
@@ -128,6 +128,12 @@ Builder.Services.AddDbContext<CareerHubDbContext>(options =>
     // Connect EF Core to PostgreSQL
     options.UseNpgsql(
         Builder.Configuration.GetConnectionString("DefaultConnection"));
+});
+
+Builder.Host.UseDefaultServiceProvider(options =>
+{
+    options.ValidateScopes = true;
+    options.ValidateOnBuild = true;
 });
 
 var app = Builder.Build();        //nothing can be registered after this

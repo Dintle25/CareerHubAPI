@@ -159,6 +159,9 @@ public class CareerHubDbContext(
                 // while jobs still exist
                 .OnDelete(DeleteBehavior.Restrict);
 
+            entity.Property(j => j.ClosingDate)
+              .IsRequired();
+
             // Prevent duplicate job titles
             // within the same company
             entity.HasIndex(j => new
@@ -196,8 +199,8 @@ public class CareerHubDbContext(
 
 
     }
-    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-    {
-        optionsBuilder.LogTo(Console.WriteLine, LogLevel.Information);
-    }
+    // protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+    // {
+    //     optionsBuilder.LogTo(Console.WriteLine, LogLevel.Information);
+    // }
 }
