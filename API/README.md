@@ -319,7 +319,68 @@ Both controllers use constructor injection via primary constructors and
 delegate everything to the service layer. Every action is at most five
 lines: one to call the service, one to return the result.
 
+
+# Assignment 2.4 – Written Decisions
+
+## 1. Constraint Placement
+
+The service layer checks that SalaryMin is less than SalaryMax before a job listing is created or updated. However, this validation can be bypassed if someone inserts data directly into the database, runs a migration script, or if there is a bug in the application.
+
+Without a database constraint, invalid salary data could be stored. For example, a job listing could have a minimum salary of R50,000 and a maximum salary of R30,000. This would make the data incorrect and unreliable.
+
+A database check constraint ensures that the rule is always enforced, even when data does not come through the API.
+
+## 2. Index Column Ordering
+
+### Active Listings Query
+
+Query:
+
+```sql
+WHERE Status = 'Active' AND ExpiresAt < @threshold
+```
+
+I put **Status** first and **ExpiresAt** second in the index.
+
+PostgreSQL uses the leftmost column of a composite index first. Since every query filters by Status, placing it first helps PostgreSQL find active records before checking the expiry date.
+
+### Company Listings Query
+
+Query:
+
+```sql
+WHERE CompanyId = X AND Status = 'Active'
+```
+
+I put **CompanyId** first and **Status** second.
+
+The query always filters by CompanyId, so PostgreSQL can quickly locate records for a specific company before filtering by status.
+
+If a query only filters on a non-leftmost column, PostgreSQL may not be able to use the index efficiently and may perform a table scan instead.
+
+## 3. Identifying Hot Paths
+
+### GetActiveListingsAsync()
+
+This method is a hot path because it is called every time users open the job listings page. Many users can request this data at the same time, so improving its performance has a large impact.
+
+### HasAppliedAsync()
+
+This method is a hot path because it runs every time someone submits a job application. It checks whether the applicant has already applied. Since application submissions happen frequently, reducing its overhead is important.
+
+## 4. FromSql Scope
+
+The statistics query uses PostgreSQL's **RANK() window function**.
+
+EF Core cannot easily translate this query from LINQ because it requires ranking rows based on application counts while also returning grouped statistics.
+
+Using raw SQL with FromSql allows PostgreSQL to execute the RANK() function directly and return the required results efficiently.
+
+
+
+
 ## Testing
+
 
 You can test the API using Scalar UI in your browser:
 

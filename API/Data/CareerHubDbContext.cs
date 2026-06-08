@@ -129,48 +129,73 @@ public class CareerHubDbContext(
         // });
 
 
-        modelBuilder.Entity<Job>(entity =>
-        {
-            entity.ToTable("jobs");
+        // modelBuilder.Entity<Job>(entity =>
+        // {
+        //     entity.ToTable("jobs");
 
-            entity.HasKey(j => j.Id);
+        //     entity.HasKey(j => j.Id);
 
-            entity.Property(j => j.Id)
-                .ValueGeneratedNever();
+        //     entity.Property(j => j.Id)
+        //         .ValueGeneratedNever();
 
-            entity.Property(j => j.Title)
-                .IsRequired()
-                .HasMaxLength(100);
+        //     entity.Property(j => j.Title)
+        //         .IsRequired()
+        //         .HasMaxLength(100);
 
-            entity.Property(j => j.Description)
-                .IsRequired()
-                .HasMaxLength(2000);
+        //     entity.Property(j => j.Description)
+        //         .IsRequired()
+        //         .HasMaxLength(2000);
 
-            entity.Property(j => j.Location)
-                .IsRequired()
-                .HasMaxLength(100);
+        //     entity.Property(j => j.Location)
+        //         .IsRequired()
+        //         .HasMaxLength(100);
 
-            // One Company -> Many Jobs
-            entity.HasOne(j => j.Company)
-                .WithMany(c => c.Jobs)
-                .HasForeignKey(j => j.CompanyId)
+        //     // One Company -> Many Jobs
+        //     entity.HasOne(j => j.Company)
+        //         .WithMany(c => c.Jobs)
+        //         .HasForeignKey(j => j.CompanyId)
 
-                // Prevent deleting a company
-                // while jobs still exist
-                .OnDelete(DeleteBehavior.Restrict);
+        //         // Prevent deleting a company
+        //         // while jobs still exist
+        //         .OnDelete(DeleteBehavior.Restrict);
 
-            entity.Property(j => j.ClosingDate)
-              .IsRequired();
+        //     entity.Property(j => j.ClosingDate)
+        //       .IsRequired();
 
-            // Prevent duplicate job titles
-            // within the same company
-            entity.HasIndex(j => new
+        //     // Prevent duplicate job titles
+        //     // within the same company
+        //     entity.HasIndex(j => new
+        //     {
+        //         j.Title,
+        //         j.CompanyId
+        //     })
+        //     .IsUnique();
+        // });
+
+
+        modelBuilder.Entity<Job>()
+    .ToTable(t =>
+    {
+        t.HasCheckConstraint(
+            "ck_job_listings_salarymin_positive",
+            "\"SalaryMin\" IS NULL OR \"SalaryMin\" > 0");
+
+        t.HasCheckConstraint(
+            "ck_job_listings_salary_range",
+            "\"SalaryMin\" IS NULL OR \"SalaryMax\" IS NULL OR \"SalaryMax\" > \"SalaryMin\"");
+
+        t.HasCheckConstraint(
+            "ck_job_listings_expiry_after_created",
+            "\"ExpiresAt\" > \"CreatedAt\"");
+    });
+
+        modelBuilder.Entity<Application>()
+            .ToTable(t =>
             {
-                j.Title,
-                j.CompanyId
-            })
-            .IsUnique();
-        });
+                t.HasCheckConstraint(
+                    "ck_applications_submittedat_not_future",
+                    "\"SubmittedAt\" <= CURRENT_TIMESTAMP");
+            });
 
 
         modelBuilder.Entity<Application>(entity =>
