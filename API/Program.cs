@@ -1,6 +1,18 @@
 using API.Middleware;
 using Scalar.AspNetCore;
 using Serilog;
+// Enables JWT Bearer authentication
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+
+// Provides classes for validating JWT tokens
+using Microsoft.IdentityModel.Tokens;
+// Used to convert the secret key into bytes
+using System.Text;
+using API.Services;
+using Microsoft.EntityFrameworkCore;
+using API.Data;
+using API.Infrastructure;
+
 
 Log.Logger = new LoggerConfiguration()
 .WriteTo.Console()
@@ -28,6 +40,102 @@ Builder.Services.AddOpenApi();
 Builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 Builder.Services.AddProblemDetails();     //registering built-in OpenAPI document
 
+// Add CORS services to the application
+Builder.Services.AddCors(options =>
+{
+    // Create a named policy called "FrontEndPolicy"
+    options.AddPolicy("FrontEndPolicy", policy =>
+    {
+        policy
+            // Allow requests from the Next.js frontend
+            .WithOrigins("http://localhost:3000")
+
+            // Allow all request headers
+            .AllowAnyHeader()
+
+            // Allow all HTTP methods (GET, POST, PUT, DELETE, etc.)
+            .AllowAnyMethod();
+    });
+});
+
+
+string jwtSecretKey = Builder.Configuration["Jwt:Key"]!;
+
+// Configure JWT authentication
+// Builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+//     .AddJwtBearer(options =>
+//     {
+//         options.TokenValidationParameters = new TokenValidationParameters
+//         {
+//             // Check if the token has expired
+//             ValidateLifetime = true,
+
+//             // Check if the signing key is valid
+//             ValidateIssuerSigningKey = true,
+
+//             // Issuer validation is not required for this assignment
+//             ValidateIssuer = false,
+
+//             // Audience validation is not required for this assignment
+//             ValidateAudience = false,
+
+//             // Create the security key from the appsettings value
+//             IssuerSigningKey = new SymmetricSecurityKey(
+//                 Encoding.UTF8.GetBytes(jwtSecretKey))
+//         };
+//     });
+
+
+Builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidateIssuer = false,
+            ValidateAudience = false,
+            IssuerSigningKey = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(jwtSecretKey))
+        };
+
+        // Show JWT validation errors in the terminal
+        options.Events = new JwtBearerEvents
+        {
+            OnAuthenticationFailed = context =>
+            {
+                Console.WriteLine("JWT ERROR:");
+                Console.WriteLine(context.Exception.Message);
+                return Task.CompletedTask;
+            }
+        };
+    });
+
+
+// Register authorization services
+Builder.Services.AddAuthorization();
+
+// Register the authentication service
+Builder.Services.AddCareerHubServices();
+// Builder.Services.AddScoped<IAuthService, AuthService>();
+// Builder.Services.AddScoped<ICompanyService, CompanyService>();
+// Builder.Services.AddScoped<IApplicantService, ApplicantService>();
+// Builder.Services.AddScoped<IApplicationService, ApplicationService>();
+
+// Register the database context----------------------------------------------------------------
+Builder.Services.AddDbContext<CareerHubDbContext>(options =>
+{
+    // Connect EF Core to PostgreSQL
+    options.UseNpgsql(
+        Builder.Configuration.GetConnectionString("DefaultConnection"));
+});
+
+Builder.Host.UseDefaultServiceProvider(options =>
+{
+    options.ValidateScopes = true;
+    options.ValidateOnBuild = true;
+});
+
 var app = Builder.Build();        //nothing can be registered after this
 
 
@@ -40,12 +148,24 @@ if(app.Environment.IsDevelopment())
 }
 
 //Error Handling
-app.UseExceptionHandler();     // Catches unexpected errors and shows them nicely
-app.UseStatusCodePages();      // Turns 404, 400 and other status codes into nice error messages
 
-app.UseHttpsRedirection();
+
+
+
 
 app.UseSerilogRequestLogging();
+// Apply the CORS policy for frontend requests
+app.UseCors("FrontEndPolicy");
+// Handle exceptions globally
+app.UseExceptionHandler();     // Catches unexpected errors and shows them nicely
+app.UseStatusCodePages();      // Turns 404, 400 and other status codes into nice error messages
+// Redirect HTTP requests to HTTPS
+app.UseHttpsRedirection();
+// Check if the user is authenticated
+app.UseAuthentication();
+
+// Check if the user is authorized
+app.UseAuthorization();
 app.MapControllers();
 app.Run();
 }

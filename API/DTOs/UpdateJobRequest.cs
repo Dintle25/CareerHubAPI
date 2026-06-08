@@ -12,7 +12,7 @@ public record UpdateJobRequest
     [Required]
     [MinLength(2)]
     [MaxLength(80)]
-    public string Company { get; set; }
+    public Guid CompanyId { get; set; }
 
     [Required]
     public string Location { get; set; } 
@@ -25,6 +25,9 @@ public record UpdateJobRequest
     [EnumDataType(typeof(JobType))]
     [RegularExpression("^(FullTime|PartTime|Contract|Internship)$")]
     public JobType Type { get; set; }
+
+    [Required]
+    public DateTime ClosingDate { get; set; }
 
     [Range(1, double.MaxValue)]
     public decimal? SalaryMin { get; set; }

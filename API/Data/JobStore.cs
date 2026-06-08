@@ -12,7 +12,8 @@ public static class JobStore
             "Build beautiful user interfaces for our platform",
             "Bitcube",
             "Cape Town",
-            JobType.FullTime
+            JobType.FullTime,
+            DateTime.UtcNow.AddDays(30)
         ),
 
         new Job(
@@ -21,7 +22,8 @@ public static class JobStore
             "An experienced developer to join the backend team",
             "Bitcube",
             "Bloemfontein",
-            JobType.FullTime
+            JobType.FullTime,
+            DateTime.UtcNow.AddDays(30)
         ),
 
         new Job(
@@ -30,7 +32,8 @@ public static class JobStore
             "Analyze business data and create reports",
             "Bitcube",
             "Bloemfontein",
-            JobType.PartTime
+            JobType.PartTime,
+            DateTime.UtcNow.AddDays(30)
         )
     };
 }

@@ -11,9 +11,10 @@ public record CreateJobRequest
     public string Title { get; set; } 
 
     [Required(ErrorMessage = "Company is required")]
-    [MinLength(2, ErrorMessage = "Company must be at least 2 characters")]
-    [MaxLength(80, ErrorMessage = "Company cannot exceed 80 characters")]
-    public string Company { get; set; }
+    // [MinLength(2, ErrorMessage = "Company must be at least 2 characters")]
+    // [MaxLength(80, ErrorMessage = "Company cannot exceed 80 characters")]
+    //public string Company { get; set; }
+    public Guid CompanyId { get; set; }
 
     [Required(ErrorMessage = "Location is required")]
     public string Location { get; set; } 
@@ -24,9 +25,13 @@ public record CreateJobRequest
 
     [Required(ErrorMessage = "Type is required")]
     
-    [RegularExpression("^(FullTime|PartTime|Contract|Internship)$", 
-        ErrorMessage = "Type must be FullTime, PartTime, Contract, or Internship")]
+    // [RegularExpression("^(FullTime|PartTime|Contract|Internship)$", 
+    //     ErrorMessage = "Type must be FullTime, PartTime, Contract, or Internship")]
+    
     public JobType Type { get; set; }
+
+    [Required(ErrorMessage = "Type is required")]
+    public DateTime ClosingDate { get; set; }
 
     [Range(1, double.MaxValue, ErrorMessage = "SalaryMin must be greater than 0")]
     public decimal? SalaryMin { get; set; }
