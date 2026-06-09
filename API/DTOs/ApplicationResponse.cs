@@ -4,6 +4,7 @@ namespace API.DTOs;
 
 public class ApplicationResponse
 {
+    public Guid Id { get; set; }
     public Guid ApplicantId { get; set; }
 
     public Guid JobId { get; set; }

@@ -80,55 +80,6 @@ public class CareerHubDbContext(
            .IsUnique();
    });
 
-
-
-
-
-
-
-        // // Configure the JobListing entity
-        // modelBuilder.Entity<Job>(entity =>
-        // {
-        //     // Map to a lowercase PostgreSQL table name
-        //     entity.ToTable("jobs");
-
-        //     // Configure the primary key
-        //     entity.HasKey(j => j.Id);
-
-        //     // The application generates the Guid
-        //     entity.Property(j => j.Id)
-        //         .ValueGeneratedNever();
-
-        //     // Job title is required and limited in length
-        //     entity.Property(j => j.Title)
-        //         .IsRequired()
-        //         .HasMaxLength(100);
-
-        //     // Company name is required and limited in length
-        //     entity.Property(j => j.Company)
-        //         .IsRequired()
-        //         .HasMaxLength(100);
-
-        //     // Description is required and limited in length
-        //     entity.Property(j => j.Description)
-        //         .IsRequired()
-        //         .HasMaxLength(2000);
-
-        //     // Location is required and limited in length
-        //     entity.Property(j => j.Location)
-        //         .IsRequired()
-        //         .HasMaxLength(100);
-
-        //     // Prevent duplicate jobs for the same company
-        //     entity.HasIndex(j => new
-        //     {
-        //         j.Title,
-        //         j.Company
-        //     })
-        //     .IsUnique();
-        // });
-
-
         modelBuilder.Entity<Job>(entity =>
         {
             entity.ToTable("jobs");

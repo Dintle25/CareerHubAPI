@@ -1,137 +1,16 @@
-// using API.Data;
-// using API.DTOs;
-// using API.Models;
-// using API.Services;
-// using Microsoft.AspNetCore.Mvc;
-// using Microsoft.EntityFrameworkCore;
-
-// [ApiController]
-// [Route("api/[controller]")]
-// public class ApplicationsController : ControllerBase
-// {
-//     //private readonly CareerHubDbContext _context;
-//     private readonly IApplicationService _applicationService;
-
-//     public ApplicationsController(
-//         IApplicationService applicationService)
-//     {
-//         _applicationService = applicationService;
-//     }
-
-//     // public ApplicationsController(CareerHubDbContext context)
-//     // {
-//     //     _context = context;
-//     // }
-
-//     // [HttpGet]
-//     // public async Task<IActionResult> GetAll()
-//     // {
-//     //     var applications = await _context.Applications
-//     //         .Include(a => a.Applicant)
-//     //         .Include(a => a.Job)
-//     //         .AsNoTracking()
-//     //         .ToListAsync();
-
-//     //     return Ok(applications);
-//     // }
-
-//     [HttpGet]
-//     public async Task<IActionResult> GetAll()
-//     {
-//         var applications =
-//             await _applicationService.GetAllAsync();
-
-//         return Ok(applications);
-//     }
-
-
-//     [HttpPost]
-//     public async Task<IActionResult> Create(
-//       CreateApplicationRequest request)
-//     {
-//         var application =
-//             await _applicationService.CreateAsync(request);
-
-//         return Ok(application);
-//     }
-
-//     // [HttpPost]
-//     // public async Task<IActionResult> Create(
-//     //     CreateApplicationRequest request)
-//     // {
-//     //     bool exists = await _context.Applications.AnyAsync(a =>
-//     //         a.ApplicantId == application.ApplicantId &&
-//     //         a.JobId == application.JobId);
-
-//     //     if (exists)
-//     //         return Conflict("Applicant has already applied for this job.");
-
-//     //     application.AppliedAt = DateTime.UtcNow;
-
-//     //     _context.Applications.Add(application);
-
-//     //     await _context.SaveChangesAsync();
-
-//     //     return Ok(application);
-//     // }
-
-//     // ✅ GET by composite key
-//     [HttpGet("{applicantId:guid}/{jobId:guid}")]
-//     public async Task<IActionResult> GetById(
-//         Guid applicantId,
-//         Guid jobId)
-//     {
-//         var application =
-//             await _applicationService.GetByIdAsync(applicantId, jobId);
-
-//         if (application == null)
-//             return NotFound();
-
-//         return Ok(application);
-//     }
-
-//     //  UPDATE (Status only)
-//     [HttpPut("{applicantId:guid}/{jobId:guid}")]
-//     public async Task<IActionResult> Update(
-//         Guid applicantId,
-//         Guid jobId,
-//         UpdateApplicationRequest request)
-//     {
-//         var updated =
-//             await _applicationService.UpdateAsync(applicantId, jobId, request);
-
-//         if (updated == null)
-//             return NotFound();
-
-//         return Ok(updated);
-//     }
-
-//     //  DELETE
-//     [HttpDelete("{applicantId:guid}/{jobId:guid}")]
-//     public async Task<IActionResult> Delete(
-//         Guid applicantId,
-//         Guid jobId)
-//     {
-//         var deleted =
-//             await _applicationService.DeleteAsync(applicantId, jobId);
-
-//         if (!deleted)
-//             return NotFound();
-
-//         return NoContent();
-//     }
-
-// }
-
-
 using API.DTOs;
 using API.Services;
+using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace API.Controllers;
 
+
 [ApiController]
-[Route("api/[controller]")]
+[ApiVersion(1)]
+//[Route("api/[controller]")]
+[Route("api/v{version:apiVersion}/[controller]")]
 public class ApplicationsController(IApplicationService applicationService) : ControllerBase
 {
     [HttpGet]
@@ -144,10 +23,46 @@ public class ApplicationsController(IApplicationService applicationService) : Co
     [HttpGet("{applicantId:guid}/{jobId:guid}")]
     public async Task<IActionResult> GetById(Guid applicantId, Guid jobId)
     {
-        var application = await applicationService.GetByIdAsync(applicantId, jobId);
-        return application is null ? NotFound() : Ok(application);
+        // var application = await applicationService.GetByIdAsync(applicantId, jobId);
+        // return application is null ? NotFound() : Ok(application);
+        var app = await applicationService.GetByIdAsync(applicantId, jobId);
+
+        if (app is null)
+            return NotFound();
+
+        var etagRaw = $"{app.Id}-{app.Status}";
+        var etag = $"\"{etagRaw.GetHashCode()}\"";
+
+        if (Request.Headers.IfNoneMatch == etag)
+            return StatusCode(304);
+
+        Response.Headers.ETag = etag;
+
+        return Ok(app);
     }
 
+    [HttpPatch("{id:guid}/status")]
+    public async Task<IActionResult> UpdateStatus(
+    Guid id,
+    [FromBody] UpdateApplicationStatusRequest request)
+    {
+        try
+        {
+            var result = await applicationService
+                .UpdateStatusAsync(id, request);
+
+            return Ok(result);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new
+            {
+                message = ex.Message
+            });
+        }
+    }
+
+    [EnableRateLimiting("apply")]
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateApplicationRequest request)
     {

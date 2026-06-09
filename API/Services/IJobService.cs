@@ -4,6 +4,14 @@ namespace API.Services;
  
 public interface IJobService
 {
+    Task<PagedResponse<JobResponse>> GetActiveListingsPagedAsync(
+    JobListingFilterQuery filter,
+    int page,
+    int pageSize);
+
+    Task<JobResponse> PatchAsync(
+    Guid id,
+    UpdateJobListingRequest request);
     Task<IEnumerable<JobResponse>> GetActiveListingsAsync();
  
     Task<JobResponse?> GetByIdAsync(Guid jobId);

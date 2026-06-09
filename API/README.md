@@ -319,6 +319,87 @@ Both controllers use constructor injection via primary constructors and
 delegate everything to the service layer. Every action is at most five
 lines: one to call the service, one to return the result.
 
+
+## ----------------------------------------------------------------------------------------------------------
+## 1. Pagination Strategy
+
+I will use offset pagination with SKIP and TAKE.
+
+If a new job listing is posted between fetching page 1 and page 2, some listings may move to a different page. This can cause a user to see a duplicate listing or miss a listing.
+
+For a job board, this is acceptable because users usually browse listings and small changes between pages do not cause major problems. Offset pagination is also simple to implement and understand.
+
+## 2. PATCH vs PUT
+
+A race condition can happen when two recruiters open the same job listing at the same time.
+
+For example, Recruiter A changes the job title and submits a PUT request. Recruiter B changes the salary and submits another PUT request using older data. Because PUT replaces the entire resource, Recruiter B's request can overwrite Recruiter A's changes. The updated job title is lost without any warning.
+
+A nullable DTO solves this problem because only the fields that contain values are updated. Fields with null values are left unchanged. This allows recruiters to update different fields without accidentally overwriting each other's changes.
+
+## 3. Versioning Strategy
+
+A breaking change is a change that causes existing clients to stop working. For example, removing the Salary field from a job response.
+
+A non-breaking change is a change that does not affect existing clients. For example, adding a new optional field to a job response.
+
+AssumeDefaultVersionWhenUnspecified = true automatically uses the default API version when a client does not specify one. This allows older clients to continue working without changing their requests, making versioning a non-breaking change.
+
+## 4. Rate Limiting Algorithm
+
+I will use the sliding window algorithm.
+
+A fixed window can allow bursts of requests at the end of one window and the beginning of the next window. This means a user could send many requests in a short period of time.
+
+The sliding window reduces this problem by tracking requests over a moving time period. This provides more consistent rate limiting and better protection against bots.
+
+Since the application submission endpoint is a target for spam and automated submissions, reducing burst traffic is important. Therefore, sliding window is a better choice than fixed window for this use case.
+
+
+## CORS
+
+I created a named CORS policy called CareerHubCors.
+
+It allows any header, any method, credentials, and exposes the X-Total-Count header.
+
+The policy is applied before authentication and authorization.
+
+AllowAnyOrigin() cannot be used with AllowCredentials(). ASP.NET Core throws an exception because allowing credentials from every website would be a security risk.
+
+## To introduce v2 of the API, I would:
+
+1. Create new controllers or add [ApiVersion(2)] alongside [ApiVersion(1)]
+2. Create new DTOs if the response shape changes (e.g. JobListingResponseV2)
+3. Keep v1 unchanged so existing clients are not affected
+4. Run v1 and v2 side by side
+5. Only remove v1 after all clients migrate to v2 and no traffic depends on it
+
+
+## Etags
+A stronger ETag would be a version field such as RowVersion or UpdatedAt stored in the database.
+
+To support this, I would add:
+
+- UpdatedAt (DateTime) or RowVersion (byte[])
+
+This field would be updated every time the job listing or application changes.
+
+This removes the need to compute ETags from multiple fields and ensures a single reliable version source.
+
+
+## Why 60 minutes for apply
+The application endpoint uses a 60-minute window because applications are high-value actions.
+Bots typically spam applications within short bursts, so a longer window reduces fraud and protects recruiters.
+
+## Real world system
+In production, rate limiting would not be based on IP address.
+Instead, it would use authenticated identity such as:
+- UserId (JWT subject claim)
+- Applicant account ID
+- Company recruiter ID
+
+This prevents abuse from shared networks and VPNs.
+
 ## Testing
 
 You can test the API using Scalar UI in your browser:

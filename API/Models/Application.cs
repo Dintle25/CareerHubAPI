@@ -4,7 +4,7 @@ public class Application
 {
     // Composite key will be:
     // ApplicantId + JobId
-
+     public Guid Id { get; set; } = Guid.NewGuid();
     public Guid ApplicantId { get; set; }
 
     public Guid JobId { get; set; }
