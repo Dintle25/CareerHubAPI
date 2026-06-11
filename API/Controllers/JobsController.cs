@@ -3,6 +3,7 @@ using API.Services;
 using Microsoft.AspNetCore.Mvc;
 using Asp.Versioning;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.AspNetCore.Authorization;
 
 namespace API.Controllers;
 
@@ -115,6 +116,7 @@ public class JobsController(IJobService jobService) : ControllerBase
         return Ok(job);
     }
 
+    [Authorize (Roles ="employer")] 
     [EnableRateLimiting("post-listing")]
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateJobRequest request)
@@ -122,7 +124,8 @@ public class JobsController(IJobService jobService) : ControllerBase
         var created = await jobService.CreateAsync(request);
         return CreatedAtRoute("GetJobById", new { id = created.Id }, created);
     }
-
+    
+     
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateJobRequest request)
     {
@@ -130,6 +133,7 @@ public class JobsController(IJobService jobService) : ControllerBase
         return Ok(updated);
     }
 
+    [Authorize (Roles ="employer")] 
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Close(Guid id)
     {

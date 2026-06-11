@@ -82,6 +82,18 @@ public class CareerHubDbContext(
 
         modelBuilder.Entity<Job>(entity =>
         {
+
+            entity.ToTable("jobs", t =>
+            {
+                t.HasCheckConstraint(
+            "CK_jobs_salary_range",
+            "\"SalaryMin\" IS NULL OR \"SalaryMax\" IS NULL OR \"SalaryMax\" >= \"SalaryMin\"");
+
+                    t.HasCheckConstraint(
+            "CK_jobs_closing_after_posted",
+            "\"ClosingDate\" > \"PostedAt\"");
+            });
+
             entity.ToTable("jobs");
 
             entity.HasKey(j => j.Id);
@@ -121,6 +133,9 @@ public class CareerHubDbContext(
                 j.CompanyId
             })
             .IsUnique();
+
+
+
         });
 
 

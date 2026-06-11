@@ -2,10 +2,6 @@ using API.Models;
 
 namespace API.Exceptions;
 
-
-/// Thrown when a requested status transition is not permitted
-/// by the rules defined in ApplicationStatusRules.
-/// </summary>
 public class InvalidStatusTransitionException : Exception
 {
     public ApplicationStatus Current { get; }

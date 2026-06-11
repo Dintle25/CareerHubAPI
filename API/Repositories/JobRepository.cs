@@ -154,80 +154,38 @@ public class JobRepository : IJobRepository
             .FirstOrDefaultAsync(j => j.Id == id);
     }
 
-    public async Task<JobResponse> PatchAsync(
-    Guid id,
-    UpdateJobListingRequest request)
+    public async Task<IEnumerable<JobResponse>> SearchAsync(string term)
     {
-        var job = await GetEntityByIdAsync(id);
-
-        // patch logic goes here
-        if (request.Title != null)
-            job.Title = request.Title;
-
-        if (request.Description != null)
-            job.Description = request.Description;
-
-        if (request.Location != null)
-            job.Location = request.Location;
-
-        if (!string.IsNullOrWhiteSpace(request.EmploymentType) &&
-       Enum.TryParse<JobType>(
-        request.EmploymentType,
-        true,
-        out var jobType))
-        {
-            job.Type = jobType;
-        }
-
-        // Salary validation starts here
-
-        var newSalaryMin = request.SalaryMin ?? job.SalaryMin;
-        var newSalaryMax = request.SalaryMax ?? job.SalaryMax;
-
-        if (request.SalaryMin.HasValue || request.SalaryMax.HasValue)
-        {
-            if (newSalaryMin > newSalaryMax)
-                throw new ArgumentException(
-                    "SalaryMin cannot be greater than SalaryMax");
-        }
-
-        if (request.SalaryMin.HasValue)
-            job.SalaryMin = request.SalaryMin;
-
-        if (request.SalaryMax.HasValue)
-            job.SalaryMax = request.SalaryMax;
-
-        if (request.ExpiresAt.HasValue)
-        {
-            if (request.ExpiresAt <= DateTime.UtcNow)
-                throw new ArgumentException(
-                    "ExpiresAt must be in the future");
-
-            job.ClosingDate = request.ExpiresAt.Value;
-        }
-
-        await _context.SaveChangesAsync();
-
-        return new JobResponse
-        {
-            Id = job.Id,
-            Title = job.Title,
-            Description = job.Description,
-            Company = job.Company.Name,
-            Location = job.Location,
-            Type = job.Type,
-            ClosingDate = job.ClosingDate,
-            PostedAt = job.PostedAt,
-            IsActive = job.IsActive,
-
-            SalaryDisplay =
-        job.SalaryMin.HasValue && job.SalaryMax.HasValue
-            ? $"£{job.SalaryMin} - £{job.SalaryMax}"
-            : "Not specified",
-
-            ApplicationCount = job.Applications.Count
-        };
+        return await _context.Jobs
+             .Include(j => j.Company).Include(j => j.Applications)
+            .Where(j => j.IsActive &&
+                   EF.Functions.ToTsVector("english", j.Title + " " + j.Description)
+                       .Matches(EF.Functions.ToTsQuery("english", term + ":*")))
+            .Select(j => new JobResponse
+            {
+                Id = j.Id,
+                Title = j.Title,
+                Description = j.Description,
+                Company = j.Company.Name,
+                Location = j.Location,
+                Type = j.Type,
+                ClosingDate = j.ClosingDate,
+                PostedAt = j.PostedAt,
+                IsActive = j.IsActive,
+                SalaryDisplay = j.SalaryMin.HasValue && j.SalaryMax.HasValue
+        ? $"£{j.SalaryMin} - £{j.SalaryMax}"
+        : "Not specified",
+                ApplicationCount = j.Applications.Count()
+            })
+            .ToListAsync();
     }
+
+    // public async Task<JobResponse> PatchAsync(
+    // Guid id,
+    // UpdateJobListingRequest request)
+    // {
+
+    // }
 
     public async Task<bool> IsListingOpenAsync(Guid jobId)
     {

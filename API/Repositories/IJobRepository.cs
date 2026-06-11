@@ -10,11 +10,13 @@ public interface IJobRepository
     int page,
     int pageSize);
 
-    Task<JobResponse> PatchAsync(
-    Guid id,
-    UpdateJobListingRequest request);
+    // Task<JobResponse> PatchAsync(
+    // Guid id,
+    // UpdateJobListingRequest request);
 
     Task<Job?> GetEntityByIdAsync(Guid id);
+
+    Task<IEnumerable<JobResponse>> SearchAsync(string term);
 
     Task<IEnumerable<JobResponse>> GetActiveListingsAsync();
 
@@ -27,5 +29,6 @@ public interface IJobRepository
     Task UpdateListingAsync(Job job);
 
     Task CloseListingAsync(Guid jobId);
+
 
 }

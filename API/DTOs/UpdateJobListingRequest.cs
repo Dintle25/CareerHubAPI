@@ -7,5 +7,5 @@ public record UpdateJobListingRequest
     public string? EmploymentType { get; init; }
     public decimal? SalaryMin { get; init; }
     public decimal? SalaryMax { get; init; }
-    public DateTime? ExpiresAt { get; init; }
+    public DateTime? ClosingDate { get; init; }
 }

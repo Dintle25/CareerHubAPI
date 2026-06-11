@@ -212,8 +212,9 @@ try
     app.UseAuthorization();
     app.MapControllers()
    .RequireRateLimiting("global");
-    app.MapControllers();
+    //app.MapControllers();
     app.Run();
+
 }
 catch (Exception ex)
 {
@@ -224,3 +225,5 @@ finally
 {
     Log.CloseAndFlush(); //Ensure all buffered log entries are flushed before application exit. 
 }
+
+public partial class Program { }

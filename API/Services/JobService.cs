@@ -22,12 +22,41 @@ public class JobService(
             pageSize);
     }
 
-    public async Task<JobResponse> PatchAsync(
-    Guid id,
-    UpdateJobListingRequest request)
-{
-    return await jobRepository.PatchAsync(id, request);
-}
+    // public async Task<JobResponse> PatchAsync(
+    // Guid id,
+    // UpdateJobListingRequest request)
+    // {
+    //     return await jobRepository.PatchAsync(id, request);
+    // }
+
+    public async Task<JobResponse> PatchAsync(Guid id, UpdateJobListingRequest request)
+    {
+        var existing = await jobRepository.GetEntityByIdAsync(id)
+            ?? throw new JobNotFoundException(id);
+
+        if (request.SalaryMin is not null || request.SalaryMax is not null)
+        {
+            var effectiveMin = request.SalaryMin ?? existing.SalaryMin;
+            var effectiveMax = request.SalaryMax ?? existing.SalaryMax;
+
+            if (effectiveMax < effectiveMin)
+                throw new InvalidSalaryException();
+        }
+
+        if (request.Title is not null) existing.Title = request.Title;
+        // ... other nullable fields
+        if (request.Title != null)
+            existing.Title = request.Title;
+
+        if (request.Description != null)
+            existing.Description = request.Description;
+
+        if (request.Location != null)
+            existing.Location = request.Location;
+
+        await jobRepository.UpdateListingAsync(existing);
+        return MapToResponse(existing);
+    }
 
 
     public async Task<IEnumerable<JobResponse>> GetActiveListingsAsync()
@@ -52,6 +81,13 @@ public class JobService(
         // Rule: closing date must be in the future
         if (closingDateUtc <= DateTime.UtcNow)
             throw new ListingClosedException("The closing date must be a future date.");
+
+        if (request.SalaryMin.HasValue &&
+        request.SalaryMax.HasValue &&
+        request.SalaryMin > request.SalaryMax)
+        {
+            throw new InvalidSalaryException();
+        }
 
         var job = new Job
         {
