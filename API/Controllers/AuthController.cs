@@ -24,6 +24,7 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("login")]
+    [AllowAnonymous]
     public IActionResult Login([FromBody] LoginRequest request)
     {
         // Ask the service to authenticate the user

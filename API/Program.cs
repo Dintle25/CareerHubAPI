@@ -15,6 +15,7 @@ using API.Infrastructure;
 using Asp.Versioning;
 using Microsoft.AspNetCore.RateLimiting;
 using System.Threading.RateLimiting;
+using System.Security.Claims;
 
 
 Log.Logger = new LoggerConfiguration()
@@ -65,7 +66,7 @@ try
     });
 
 
-    string jwtSecretKey = Builder.Configuration["Jwt:Key"]!;
+    var jwtSecretKey = Builder.Configuration["Jwt:Key"]!;
 
 
     Builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -73,12 +74,21 @@ try
         {
             options.TokenValidationParameters = new TokenValidationParameters
             {
-                ValidateLifetime = true,
+                // ValidateLifetime = true,
+                // ValidateIssuerSigningKey = true,
+                // ValidateIssuer = false,
+                // ValidateAudience = false,
+                // IssuerSigningKey = new SymmetricSecurityKey(
+                //     Encoding.UTF8.GetBytes(jwtSecretKey))
+
                 ValidateIssuerSigningKey = true,
+                IssuerSigningKey = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(Builder.Configuration["Jwt:Key"]!)),
+
                 ValidateIssuer = false,
                 ValidateAudience = false,
-                IssuerSigningKey = new SymmetricSecurityKey(
-                    Encoding.UTF8.GetBytes(jwtSecretKey))
+
+                RoleClaimType = ClaimTypes.Role
             };
 
             // Show JWT validation errors in the terminal
@@ -98,7 +108,7 @@ try
     options.DefaultApiVersion = new ApiVersion(1, 0);
     options.AssumeDefaultVersionWhenUnspecified = true;
     options.ReportApiVersions = true;
-});
+}).AddMvc();
 
     // Register authorization services
     Builder.Services.AddAuthorization();

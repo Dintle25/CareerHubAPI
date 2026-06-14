@@ -40,7 +40,7 @@ public class AuthService : IAuthService
             new Claim(JwtRegisteredClaimNames.Sub, request.Username),
 
             // Store the user's role
-            new Claim(ClaimTypes.Role, "Employer")
+            new Claim(ClaimTypes.Role, "employer")
         };
 
         // Read the secret key from appsettings

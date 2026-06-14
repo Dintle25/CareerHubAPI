@@ -14,6 +14,7 @@ namespace API.Controllers;
 [ApiVersion(1)]
 //[Route("api/[controller]")]
 [Route("api/v{version:apiVersion}/[controller]")]
+[Route("api/[controller]")]
 public class JobsController(IJobService jobService) : ControllerBase
 {
 
@@ -97,7 +98,7 @@ public class JobsController(IJobService jobService) : ControllerBase
 
     // }
 
-    [HttpGet("{id:guid}", Name = "GetJobById")]
+    [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(Guid id)
     {
         var job = await jobService.GetByIdAsync(id);
@@ -122,7 +123,7 @@ public class JobsController(IJobService jobService) : ControllerBase
     public async Task<IActionResult> Create([FromBody] CreateJobRequest request)
     {
         var created = await jobService.CreateAsync(request);
-        return CreatedAtRoute("GetJobById", new { id = created.Id }, created);
+        return CreatedAtAction("GetJobById", new { id = created.Id }, created);
     }
     
      

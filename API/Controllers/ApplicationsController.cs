@@ -1,6 +1,7 @@
 using API.DTOs;
 using API.Services;
 using Asp.Versioning;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 
@@ -62,6 +63,7 @@ public class ApplicationsController(IApplicationService applicationService) : Co
         }
     }
 
+    [Authorize]
     [EnableRateLimiting("apply")]
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateApplicationRequest request)
