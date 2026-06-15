@@ -43,6 +43,11 @@ public class ApplicationsController(IApplicationService applicationService) : Co
     }
 
     [HttpPatch("{id:guid}/status")]
+    
+    [EndpointSummary("List an application")]
+    [EndpointDescription(
+        "Status transition validation belongs in the Service layer." +
+        "Putting this validation in controllers or repository is illegal because Business rules would become duplicated if multiple controllers need the same validation.")]
     public async Task<IActionResult> UpdateStatus(
     Guid id,
     [FromBody] UpdateApplicationStatusRequest request)

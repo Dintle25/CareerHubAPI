@@ -19,6 +19,11 @@ public class JobsController(IJobService jobService) : ControllerBase
 {
 
     [HttpGet]
+    [EndpointSummary("List all jobs")]
+    [EndpointDescription(
+        "The X-Total-Count response header contains the total number of jobs " +
+        "Returns a paginated list of jobs using a default page size " +
+        "matching the current filter, regardless of page size.")]
     public async Task<ActionResult<PagedResponse<JobResponse>>> GetJobs(
     [FromQuery] int page = 1,
     [FromQuery] int pageSize = 20)
@@ -38,8 +43,12 @@ public class JobsController(IJobService jobService) : ControllerBase
     }
 
 
-    [EnableRateLimiting("search")]
     [HttpGet("search")]
+    [EnableRateLimiting("search")]
+    [EndpointSummary("Search jobs")]
+    [EndpointDescription(
+        "Rate limited to 20 requests per minute — full-text queries are expensive." +
+        "When Q is provided, PostgreSQL full-text search is used with GIN index support. " )]
     public async Task<ActionResult<PagedResponse<JobResponse>>> SearchJobs(
    [FromQuery] string? location,
    [FromQuery] string? employmentType,
@@ -76,6 +85,7 @@ public class JobsController(IJobService jobService) : ControllerBase
 
 
     [HttpPatch("{id:guid}")]
+
     public async Task<IActionResult> Patch(
     Guid id,
     UpdateJobListingRequest request)
@@ -99,6 +109,10 @@ public class JobsController(IJobService jobService) : ControllerBase
     // }
 
     [HttpGet("{id:guid}")]
+    [EndpointSummary("List a job")]
+    [EndpointDescription(
+        "Update Etag updatedAt every time the job listing or application changes. " +
+        "A race condition can happen when two recruiters open the same job listing at the same time.")]
     public async Task<IActionResult> GetById(Guid id)
     {
         var job = await jobService.GetByIdAsync(id);

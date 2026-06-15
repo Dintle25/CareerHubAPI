@@ -16,6 +16,8 @@ using Asp.Versioning;
 using Microsoft.AspNetCore.RateLimiting;
 using System.Threading.RateLimiting;
 using System.Security.Claims;
+using API.Infrastructure.OpenApi;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 
 
 Log.Logger = new LoggerConfiguration()
@@ -23,7 +25,7 @@ Log.Logger = new LoggerConfiguration()
 .CreateLogger();
 try
 {
-    Log.Information("Starting up the Conference Booking API...");
+    Log.Information("Starting up the Career Hub API...");
     // Phase 1: Builder-register the services into the app---dependency injection controller
     var Builder = WebApplication.CreateBuilder(args);
     Builder.Host.UseSerilog();
@@ -110,6 +112,13 @@ try
     options.ReportApiVersions = true;
 }).AddMvc();
 
+
+Builder.Services.AddScoped<CareerHubDocumentTransformer>();
+    Builder.Services.AddOpenApi(options =>
+    {
+        options.AddDocumentTransformer<CareerHubDocumentTransformer>();
+    });
+
     // Register authorization services
     Builder.Services.AddAuthorization();
 
@@ -186,6 +195,23 @@ try
         options.ValidateOnBuild = true;
     });
 
+
+     Builder.Services.AddHealthChecks()
+        .AddDbContextCheck<CareerHubDbContext>(
+            name: "database",
+            failureStatus: Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Unhealthy,
+            tags: ["ready"]);
+
+    Builder.Services.AddHostedService<CareerArchiveService>();
+
+    Builder.Host.UseDefaultServiceProvider(options =>
+    {
+        options.ValidateScopes  = true;
+        options.ValidateOnBuild = true;
+    });
+
+
+
     var app = Builder.Build();        //nothing can be registered after this
 
 
@@ -223,6 +249,17 @@ try
     app.MapControllers()
    .RequireRateLimiting("global");
     //app.MapControllers();
+
+    app.MapHealthChecks("/health/live", new HealthCheckOptions
+    {
+        Predicate = _ => false
+    });
+
+    app.MapHealthChecks("/health/ready", new HealthCheckOptions
+    {
+        Predicate = check => check.Tags.Contains("ready")
+    });
+
     app.Run();
 
 }
