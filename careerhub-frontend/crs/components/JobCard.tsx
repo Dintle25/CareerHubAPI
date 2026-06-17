@@ -16,9 +16,13 @@ const employmentTypeColors: Record<JobListing["jobType"], string> = {
   Internship: "bg-yellow-500 text-black",
 };
 
-// Format salary range
+// // Format salary range
+// const formatSalary = (min: number, max: number) =>
+//   `R${min.toLocaleString()} – R${max.toLocaleString()} pm`;
+// Format salary range consistently
 const formatSalary = (min: number, max: number) =>
-  `R${min.toLocaleString()} – R${max.toLocaleString()} pm`;
+  `R${min.toLocaleString("en-ZA")} – R${max.toLocaleString("en-ZA")} pm`;
+
 
 // calculate relative date (not hardcoede)
 const formatRelativeDate = (isoDate: string) => {
