@@ -2,11 +2,15 @@ using API.Data;
 using API.DTOs;
 using API.Models;
 using API.Services;
+using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
+
 [ApiController]
-[Route("api/[controller]")]
+[ApiVersion(1)]
+//[Route("api/[controller]")]
+[Route("api/v{version:apiVersion}/[controller]")]
 public class ApplicantsController : ControllerBase
 {
 //private readonly CareerHubDbContext _context;

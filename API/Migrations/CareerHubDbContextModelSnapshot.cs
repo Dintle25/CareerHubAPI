@@ -61,6 +61,9 @@ namespace API.Migrations
                     b.Property<DateTime>("AppliedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
                     b.Property<int>("Status")
                         .HasColumnType("integer");
 
@@ -121,6 +124,12 @@ namespace API.Migrations
                     b.Property<DateTime>("PostedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<decimal?>("SalaryMax")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal?>("SalaryMin")
+                        .HasColumnType("numeric");
+
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -136,7 +145,12 @@ namespace API.Migrations
                     b.HasIndex("Title", "CompanyId")
                         .IsUnique();
 
-                    b.ToTable("jobs", (string)null);
+                    b.ToTable("jobs", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_jobs_closing_after_posted", "\"ClosingDate\" > \"PostedAt\"");
+
+                            t.HasCheckConstraint("CK_jobs_salary_range", "\"SalaryMin\" IS NULL OR \"SalaryMax\" IS NULL OR \"SalaryMax\" >= \"SalaryMin\"");
+                        });
                 });
 
             modelBuilder.Entity("API.Models.Application", b =>

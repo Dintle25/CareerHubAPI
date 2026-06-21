@@ -1,33 +1,3 @@
-// using API.Models;
-
-// namespace API.Repositories;
-
-// public interface IApplicationRepository
-// {
-//     Task<bool> HasApplicantAppliedAsync(
-//         Guid applicantId,
-//         Guid jobId);
-
-//     Task<IEnumerable<Application>>
-//         GetApplicationsForListingAsync(Guid jobId);
-
-//     Task<IEnumerable<Application>>
-//         GetApplicationsByApplicantAsync(Guid applicantId);
-
-//     Task AddApplicationAsync(Application application);
-
-//     Task UpdateApplicationStatusAsync(
-//         Guid applicantId,
-//         Guid jobId,
-//         ApplicationStatus status);
-
-//     Task<Application?> GetApplicationAsync(
-//         Guid applicantId,
-//         Guid jobId);
-//     Task DeleteApplicationAsync(Guid applicantId, Guid jobId);
-// }
-
-
 using API.DTOs;
 using API.Models;
 
@@ -44,6 +14,9 @@ public interface IApplicationRepository
     Task<bool> HasApplicantAppliedAsync(
         Guid applicantId,
         Guid jobId);
+
+    Task<Application?> GetByIdAsync(Guid id);
+    Task UpdateAsync(Application application);
 
     Task<IEnumerable<Application>> GetApplicationsForListingAsync(Guid jobId);
 

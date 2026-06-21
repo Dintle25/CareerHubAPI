@@ -1,118 +1,3 @@
-// using API.DTOs;
-// using API.Exceptions;
-// using API.Models;
-// using API.Repositories;
- 
-// namespace API.Services;
- 
-// /// <summary>
-// /// Enforces all job-listing business rules.
-// /// No EF Core imports — all data access is delegated to IJobRepository
-// /// and ICompanyRepository.
-// /// </summary>
-// public class JobService(
-//     IJobRepository jobRepository,
-//     ICompanyRepository companyRepository
-// ) : IJobService
-// {
-//     public async Task<IEnumerable<JobResponse>> GetActiveListingsAsync()
-//     {
-//         return await jobRepository.GetActiveListingsAsync();
-//     }
- 
-//     public async Task<JobResponse?> GetByIdAsync(Guid jobId)
-//     {
-//         var job = await jobRepository.GetListingWithDetailsAsync(jobId);
- 
-//         if (job is null)
-//             return null;
- 
-//         return MapToResponse(job);
-//     }
- 
-//     public async Task<JobResponse> CreateAsync(CreateJobRequest request)
-//     {
-//         // Rule: company must exist
-//         var company = await companyRepository.GetByIdAsync(request.CompanyId)
-//             ?? throw new CompanyNotFoundException(request.CompanyId);
- 
-//         // Rule: closing date must be in the future
-//         if (request.ClosingDate <= DateTime.UtcNow)
-//             throw new ListingClosedException(
-//                 "The closing date must be a future date.");
- 
-//         var job = new Job
-//         {
-//             Id = Guid.NewGuid(),
-//             Title = request.Title,
-//             Description = request.Description,
-//             CompanyId = request.CompanyId,
-//             Company = company,
-//             Location = request.Location,
-//             Type = request.Type,
-//             ClosingDate = request.ClosingDate,
-//             PostedAt = DateTime.UtcNow,
-//             IsActive = true
-//         };
- 
-//         await jobRepository.AddListingAsync(job);
- 
-//         return MapToResponse(job);
-//     }
- 
-//     public async Task<JobResponse> UpdateAsync(Guid jobId, UpdateJobRequest request)
-//     {
-//         var existing = await jobRepository.GetListingWithDetailsAsync(jobId)
-//             ?? throw new JobNotFoundException(jobId);
- 
-//         // Rule: only the owning company can update the listing
-//         if (existing.CompanyId != request.CompanyId)
-//             throw new UnauthorizedListingUpdateException();
- 
-//         // Rule: cannot update a closed listing
-//         if (!existing.IsActive || existing.ClosingDate <= DateTime.UtcNow)
-//             throw new ListingClosedException(
-//                 "Cannot update a listing that is already closed.");
- 
-//         existing.Title = request.Title;
-//         existing.Description = request.Description;
-//         existing.Location = request.Location;
-//         existing.Type = request.Type;
-//         existing.ClosingDate = request.ClosingDate;
- 
-//         await jobRepository.UpdateListingAsync(existing);
- 
-//         return MapToResponse(existing);
-//     }
- 
-//     public async Task CloseAsync(Guid jobId)
-//     {
-//         var existing = await jobRepository.GetListingWithDetailsAsync(jobId)
-//             ?? throw new JobNotFoundException(jobId);
- 
-//         await jobRepository.CloseListingAsync(existing.Id);
-//     }
- 
-//     // ---------------------------------------------------------------------------
-//     // Private helpers
-//     // ---------------------------------------------------------------------------
- 
-//     private static JobResponse MapToResponse(Job job) => new()
-//     {
-//         Id = job.Id,
-//         Title = job.Title,
-//         Description = job.Description,
-//         Company = job.Company?.Name ?? string.Empty,
-//         Location = job.Location,
-//         Type = job.Type,
-//         ClosingDate = job.ClosingDate,
-//         PostedAt = job.PostedAt,
-//         IsActive = job.IsActive,
-//         SalaryDisplay = "N/A",
-//         ApplicationCount = job.Applications?.Count ?? 0
-//     };
-// }
-
 using API.DTOs;
 using API.Exceptions;
 using API.Models;
@@ -125,6 +10,55 @@ public class JobService(
     ICompanyRepository companyRepository
 ) : IJobService
 {
+
+    public async Task<PagedResponse<JobResponse>> GetActiveListingsPagedAsync(
+    JobListingFilterQuery filter,
+    int page,
+    int pageSize)
+    {
+        return await jobRepository.GetActiveListingsPagedAsync(
+            filter,
+            page,
+            pageSize);
+    }
+
+    // public async Task<JobResponse> PatchAsync(
+    // Guid id,
+    // UpdateJobListingRequest request)
+    // {
+    //     return await jobRepository.PatchAsync(id, request);
+    // }
+
+    public async Task<JobResponse> PatchAsync(Guid id, UpdateJobListingRequest request)
+    {
+        var existing = await jobRepository.GetEntityByIdAsync(id)
+            ?? throw new JobNotFoundException(id);
+
+        if (request.SalaryMin is not null || request.SalaryMax is not null)
+        {
+            var effectiveMin = request.SalaryMin ?? existing.SalaryMin;
+            var effectiveMax = request.SalaryMax ?? existing.SalaryMax;
+
+            if (effectiveMax < effectiveMin)
+                throw new InvalidSalaryException();
+        }
+
+        if (request.Title is not null) existing.Title = request.Title;
+        // ... other nullable fields
+        if (request.Title != null)
+            existing.Title = request.Title;
+
+        if (request.Description != null)
+            existing.Description = request.Description;
+
+        if (request.Location != null)
+            existing.Location = request.Location;
+
+        await jobRepository.UpdateListingAsync(existing);
+        return MapToResponse(existing);
+    }
+
+
     public async Task<IEnumerable<JobResponse>> GetActiveListingsAsync()
     {
         return await jobRepository.GetActiveListingsAsync();
@@ -142,41 +76,48 @@ public class JobService(
         var company = await companyRepository.GetByIdAsync(request.CompanyId)
             ?? throw new CompanyNotFoundException(request.CompanyId);
 
-        // Normalise to UTC before any date comparison or persistence.
-        // PostgreSQL 'timestamp with time zone' rejects Kind=Unspecified.
         var closingDateUtc = ToUtc(request.ClosingDate);
 
         // Rule: closing date must be in the future
         if (closingDateUtc <= DateTime.UtcNow)
             throw new ListingClosedException("The closing date must be a future date.");
 
+        if (request.SalaryMin.HasValue &&
+        request.SalaryMax.HasValue &&
+        request.SalaryMin > request.SalaryMax)
+        {
+            throw new InvalidSalaryException();
+        }
+
         var job = new Job
         {
-            Id          = Guid.NewGuid(),
-            Title       = request.Title,
+            Id = Guid.NewGuid(),
+            Title = request.Title,
             Description = request.Description,
-            CompanyId   = request.CompanyId,
-            Location    = request.Location,
-            Type        = request.Type,
+            CompanyId = request.CompanyId,
+            Location = request.Location,
+            Type = request.Type,
+            SalaryMin = request.SalaryMin,
+            SalaryMax = request.SalaryMax,
             ClosingDate = closingDateUtc,
-            PostedAt    = DateTime.UtcNow,
-            IsActive    = true
+            PostedAt = DateTime.UtcNow,
+            IsActive = true
         };
 
         await jobRepository.AddListingAsync(job);
 
         return new JobResponse
         {
-            Id             = job.Id,
-            Title          = job.Title,
-            Description    = job.Description,
-            Company        = company.Name,
-            Location       = job.Location,
-            Type           = job.Type,
-            ClosingDate    = job.ClosingDate,
-            PostedAt       = job.PostedAt,
-            IsActive       = job.IsActive,
-            SalaryDisplay  = "N/A",
+            Id = job.Id,
+            Title = job.Title,
+            Description = job.Description,
+            Company = company.Name,
+            Location = job.Location,
+            Type = job.Type,
+            ClosingDate = job.ClosingDate,
+            PostedAt = job.PostedAt,
+            IsActive = job.IsActive,
+            SalaryDisplay = "N/A",
             ApplicationCount = 0
         };
     }
@@ -194,10 +135,10 @@ public class JobService(
         if (!existing.IsActive || existing.ClosingDate <= DateTime.UtcNow)
             throw new ListingClosedException("Cannot update a listing that is already closed.");
 
-        existing.Title       = request.Title;
+        existing.Title = request.Title;
         existing.Description = request.Description;
-        existing.Location    = request.Location;
-        existing.Type        = request.Type;
+        existing.Location = request.Location;
+        existing.Type = request.Type;
         existing.ClosingDate = ToUtc(request.ClosingDate);
 
         await jobRepository.UpdateListingAsync(existing);
@@ -224,16 +165,16 @@ public class JobService(
 
     private static JobResponse MapToResponse(Job job) => new()
     {
-        Id               = job.Id,
-        Title            = job.Title,
-        Description      = job.Description,
-        Company          = job.Company?.Name ?? string.Empty,
-        Location         = job.Location,
-        Type             = job.Type,
-        ClosingDate      = job.ClosingDate,
-        PostedAt         = job.PostedAt,
-        IsActive         = job.IsActive,
-        SalaryDisplay    = "N/A",
+        Id = job.Id,
+        Title = job.Title,
+        Description = job.Description,
+        Company = job.Company?.Name ?? string.Empty,
+        Location = job.Location,
+        Type = job.Type,
+        ClosingDate = job.ClosingDate,
+        PostedAt = job.PostedAt,
+        IsActive = job.IsActive,
+        SalaryDisplay = "N/A",
         ApplicationCount = job.Applications?.Count ?? 0
     };
 }

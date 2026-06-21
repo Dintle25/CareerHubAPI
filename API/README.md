@@ -319,6 +319,228 @@ Both controllers use constructor injection via primary constructors and
 delegate everything to the service layer. Every action is at most five
 lines: one to call the service, one to return the result.
 
+
+## ----------------------------------------------------------------------------------------------------------
+## 1. Pagination Strategy
+
+I will use offset pagination with SKIP and TAKE.
+
+If a new job listing is posted between fetching page 1 and page 2, some listings may move to a different page. This can cause a user to see a duplicate listing or miss a listing.
+
+For a job board, this is acceptable because users usually browse listings and small changes between pages do not cause major problems. Offset pagination is also simple to implement and understand.
+
+## 2. PATCH vs PUT
+
+A race condition can happen when two recruiters open the same job listing at the same time.
+
+For example, Recruiter A changes the job title and submits a PUT request. Recruiter B changes the salary and submits another PUT request using older data. Because PUT replaces the entire resource, Recruiter B's request can overwrite Recruiter A's changes. The updated job title is lost without any warning.
+
+A nullable DTO solves this problem because only the fields that contain values are updated. Fields with null values are left unchanged. This allows recruiters to update different fields without accidentally overwriting each other's changes.
+
+## 3. Versioning Strategy
+
+A breaking change is a change that causes existing clients to stop working. For example, removing the Salary field from a job response.
+
+A non-breaking change is a change that does not affect existing clients. For example, adding a new optional field to a job response.
+
+AssumeDefaultVersionWhenUnspecified = true automatically uses the default API version when a client does not specify one. This allows older clients to continue working without changing their requests, making versioning a non-breaking change.
+
+## 4. Rate Limiting Algorithm
+
+I will use the sliding window algorithm.
+
+A fixed window can allow bursts of requests at the end of one window and the beginning of the next window. This means a user could send many requests in a short period of time.
+
+The sliding window reduces this problem by tracking requests over a moving time period. This provides more consistent rate limiting and better protection against bots.
+
+Since the application submission endpoint is a target for spam and automated submissions, reducing burst traffic is important. Therefore, sliding window is a better choice than fixed window for this use case.
+
+
+## CORS
+
+I created a named CORS policy called CareerHubCors.
+
+It allows any header, any method, credentials, and exposes the X-Total-Count header.
+
+The policy is applied before authentication and authorization.
+
+AllowAnyOrigin() cannot be used with AllowCredentials(). ASP.NET Core throws an exception because allowing credentials from every website would be a security risk.
+
+## To introduce v2 of the API, I would:
+
+1. Create new controllers or add [ApiVersion(2)] alongside [ApiVersion(1)]
+2. Create new DTOs if the response shape changes (e.g. JobListingResponseV2)
+3. Keep v1 unchanged so existing clients are not affected
+4. Run v1 and v2 side by side
+5. Only remove v1 after all clients migrate to v2 and no traffic depends on it
+
+
+## Etags
+A stronger ETag would be a version field such as RowVersion or UpdatedAt stored in the database.
+
+To support this, I would add:
+
+- UpdatedAt (DateTime) or RowVersion (byte[])
+
+This field would be updated every time the job listing or application changes.
+
+This removes the need to compute ETags from multiple fields and ensures a single reliable version source.
+
+
+## Why 60 minutes for apply
+The application endpoint uses a 60-minute window because applications are high-value actions.
+Bots typically spam applications within short bursts, so a longer window reduces fraud and protects recruiters.
+
+## Real world system
+In production, rate limiting would not be based on IP address.
+Instead, it would use authenticated identity such as:
+- UserId (JWT subject claim)
+- Applicant account ID
+- Company recruiter ID
+
+This prevents abuse from shared networks and VPNs.
+
+## ---------------------------------------------------------------------------------------------------------------
+## What belongs in a unit test vs an integration test
+Salary range validation in JobListingService.CreateAsync → Unit Test
+This is business logic inside the service. A unit test can verify the validation without using a real database. An integration test is not needed because it does not specifically test the service logic.
+[Authorize] attribute on POST /api/v1/jobs → Integration Test
+This requires the ASP.NET Core pipeline to run. A unit test cannot verify that authentication and authorization are configured correctly.
+SalaryMax > SalaryMin check constraint in the database → Integration Test
+This is enforced by the database. A unit test cannot verify real database constraints because mocks do not execute SQL.
+api-supported-versions: 1.0 header on every response → Integration Test
+This is generated by API versioning middleware. A unit test cannot verify HTTP response headers.
+HasAppliedAsync compiled query returning the correct boolean → Integration Test
+This query must run against a real database. A unit test cannot verify that EF Core translates and executes the query correctly.
+
+## Why the EF Core In-Memory Provider Is Not Enough
+
+The EF Core In-Memory provider cannot verify several important features:
+
+Database check constraints
+It does not enforce database constraints, so it cannot verify rules like SalaryMax > SalaryMin.
+Compiled queries
+It does not execute SQL like PostgreSQL, so it cannot verify that compiled queries work correctly.
+Pagination and filtering queries
+It does not behave exactly like a real database when translating LINQ queries, sorting, filtering, and pagination.
+
+Because of these limitations, a real database should be used for integration tests.
+
+## Test Isolation
+
+A test is isolated when it does not depend on data created by another test.
+
+Isolation is important because tests should pass regardless of the order they run.
+
+If two repository tests share the same database rows, one test might modify or delete data that another test needs. This can cause tests to fail randomly.
+
+TestContainers and per-test data seeding solve this problem by creating a fresh database environment for each test. Each test gets its own data and cannot affect other tests.
+
+## The Purpose of a CI Pipeline
+
+A CI pipeline automatically builds and tests the application whenever code is pushed to the repository.
+
+Running tests locally only checks your own changes on your machine.
+
+A CI pipeline can catch problems that local testing cannot. For example, two developers may both pass all local tests, but when their changes are merged together, they may conflict and cause tests to fail.
+
+The CI pipeline tests the combined codebase and helps detect integration problems before the code is deployed.
+
+
+## -------------------------------------------------------------------------------------------------------------
+## Branch Protection for main
+
+### Configuring the rule
+
+1. Go to Settings → Branches in your GitHub repository
+2. Click Add branch protection rule
+3. Set Branch name pattern to main
+4. Enable Require status checks to pass before merging
+5. In the search box that appears, type Build and Test and select it — this is
+   the job name defined in .github/workflows/ci.yml
+6. Enable Require branches to be up to date before merging
+7. Enable Do not allow bypassing the above settings
+8. Click Save changes
+
+
+
+### Why "Require branches to be up to date before merging" matters
+
+Requiring status checks alone only proves that the branch passed CI in
+isolation — it says nothing about whether the branch is compatible with the
+current state of main.
+
+Consider this sequence without the "up to date" rule:
+
+1. Branch A and Branch B both cut from main at commit X and both go green.
+2. Branch A merges first — main is now at commit Y.
+3. Branch B is still green (its check ran against commit X), so the rule allows
+   it to merge — but Branch B has never been tested against commit Y.
+4. Branch B merges and breaks main because its changes conflict with A's at
+   the code level even though they didn't conflict at the merge level.
+
+"Require branches to be up to date" closes this window by forcing a rebase or
+merge of main into the branch before the merge button is enabled. CI must pass
+after that update, so the check always reflects the real integration state.
+
+
+
+## What "Do not allow bypassing the above settings" does and why it matters
+
+By default, repository administrators and organisation owners can merge pull
+requests even when status checks are failing or the branch is behind. This means
+a single person can unilaterally bypass every protection rule — intentionally
+under pressure ("I'll fix it in the next commit") or accidentally.
+
+Enabling this setting removes that escape hatch for everyone, including
+admins. The only way to merge is through the normal protected path. This matters
+because:
+
+- It makes the rules enforceable as policy, not just convention
+- It prevents "emergency" merges that quietly break main and erode trust in
+  the pipeline
+- It ensures the audit trail is complete — every commit on main passed CI,
+  with no exceptions
+
+## Test Coverage Analysis
+
+### What unit tests do not cover
+
+1. Database constraint enforcement
+Unit tests substitute the repository with NSubstitute, so no real database is
+involved. A call to `AddListingAsync` on a substitute succeeds unconditionally —
+it cannot verify that the database rejects a `Job` where `SalaryMax < SalaryMin`
+at the persistence layer. That behaviour requires a TestContainers repository
+test running against a real PostgreSQL instance with migrations applied.
+
+2. HTTP middleware pipeline behaviour
+Unit tests call service methods directly. They cannot verify that a request
+missing an `Authorization` header is intercepted by the JWT middleware and
+returns 401 before it reaches the controller action. That requires an
+integration test using `WebApplicationFactory` which boots the full ASP.NET
+Core pipeline including authentication middleware.
+
+### What integration tests do not cover
+
+WebApplicationFactory cannot verify real database query behaviour.
+The factory runs against whatever database is configured — in these tests that
+is the live development database. It cannot verify that a query correctly
+excludes expired listings, applies pagination, or respects check constraints,
+because the data in that database is not controlled by the test. Verifying
+specific query behaviour against known seed data requires a TestContainers
+repository test with an isolated, migrated schema.
+
+### What TestContainers tests do not cover
+
+HTTP-level concerns such as response headers, status codes, and content
+negotiation. The repository tests call repository methods directly and assert
+on returned C# objects. They cannot verify that the `X-Total-Count` header is
+set on the HTTP response, or that the ETag round-trip returns 304. Those
+behaviours belong to the controller and middleware layer and require an
+integration test through `WebApplicationFactory`.
+
+
+
 ## Testing
 
 You can test the API using Scalar UI in your browser:
