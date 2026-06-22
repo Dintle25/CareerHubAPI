@@ -10,8 +10,6 @@ public record UpdateJobRequest
     public string Title { get; set; }
 
     [Required]
-    [MinLength(2)]
-    [MaxLength(80)]
     public Guid CompanyId { get; set; }
 
     [Required]
