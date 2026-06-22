@@ -1,106 +1,41 @@
 "use client";
 
 import JobList from "@/components/JobList";
-import { JobListing } from "@/types";
+import { JobListSkeleton } from "@/components/JobCardSkeleton";
+import { fetchJobs } from "@/lib/api";
+import { useQuery } from "@tanstack/react-query";
 import React, { useEffect, useState } from "react";
 
-export default function Home() {
-  // hardcoded dataset with realistic South African jobs: 
-  const jobs: JobListing[] = [
-    {
-      //a job that is posted today
-      id: "11111111-aaaa-bbbb-cccc-111111111111",
-      title: "Software Engineer",
-      company: "Bitcube",
-      location: "Johannesburg",
-      jobType: "FullTime",
-      salaryMin: 45000,
-      salaryMax: 65000,
-      postedAt: new Date().toISOString(), // posted today
-      isActive: true,
-      applicantCount: 12,
-    },
+// Session storage key
+const STORAGE_KEY = "selectedJobId";
 
-    {
-      //a job that is posted more than 30 days  ago
-      id: "22222222-aaaa-bbbb-cccc-222222222222",
-      title: "Data Analyst",
-      company: "Discovery",
-      location: "Cape Town",
-      jobType: "Contract",
-      salaryMin: 30000,
-      salaryMax: 40000,
-      postedAt: "2026-05-01T09:00:00Z", // more than 30 days ago
-      isActive: true,
-      applicantCount: 0, // applicantCount = 0
-    },
-    {
-      //a job listing with isActive = false
-      id: "33333333-aaaa-bbbb-cccc-333333333333",
-      title: "Marketing Coordinator",
-      company: "Shoprite",
-      location: "Durban",
-      jobType: "PartTime",
-      salaryMin: 20000,
-      salaryMax: 25000,
-      postedAt: "2026-06-10T09:00:00Z",
-      isActive: false, // job that is not active
-      applicantCount: 5,
-    },
-    {
-      id: "44444444-aaaa-bbbb-cccc-444444444444",
-      title: "HR Specialist",
-      company: "Sasol",
-      location: "Secunda",
-      jobType: "FullTime",
-      salaryMin: 35000,
-      salaryMax: 50000,
-      postedAt: "2026-06-15T09:00:00Z",
-      isActive: true,
-      applicantCount: 8,
-    },
-    {
-      id: "55555555-aaaa-bbbb-cccc-555555555555",
-      title: "Frontend Developer",
-      company: "Takealot",
-      location: "Remote",
-      jobType: "Internship",
-      salaryMin: 10000,
-      salaryMax: 15000,
-      postedAt: "2026-06-01T09:00:00Z",
-      isActive: true,
-      applicantCount: 2,
-    },
-    {
-      //a job that is older that 30 days
-      id: "66666666-aaaa-bbbb-cccc-666666666666",
-      title: "Project Manager",
-      company: "MTN",
-      location: "Pretoria",
-      jobType: "Contract",
-      salaryMin: 50000,
-      salaryMax: 70000,
-      postedAt: "2026-04-20T09:00:00Z", // older than 30 days
-      isActive: true,
-      applicantCount: 15,
-    },
-  ];
-  // Session storage key
-  const STORAGE_KEY = "selectedJobId";
+export default function Home() {
+  const {
+    data: jobs,
+    isPending,
+    isError,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey: ["jobs"],
+    queryFn: fetchJobs,
+  });
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  // Run once when the page loads
-  // [] means this effect only runs once on mount
+  // Restore the previously selected job id on mount.
+  // No validation against `jobs` here — jobs is undefined while the
+  // query is pending. If the stored id doesn't match a loaded job,
+  // selectedJob below simply evaluates to undefined and the summary
+  // panel doesn't render — no error, graceful degradation.
   useEffect(() => {
     const stored = sessionStorage.getItem(STORAGE_KEY);
-    if (stored !== null && jobs.some((r) => r.id === stored)) {
+    if (stored !== null) {
       setSelectedId(stored);
     }
   }, []);
 
-  // Save the selected job whenever it changes
-  // [selectedId] means this effect runs only when the selected job changes.
+  // Persist the selected job whenever it changes.
   useEffect(() => {
     if (selectedId !== null) {
       sessionStorage.setItem(STORAGE_KEY, selectedId);
@@ -108,30 +43,47 @@ export default function Home() {
       sessionStorage.removeItem(STORAGE_KEY);
     }
   }, [selectedId]);
-  
 
-  // const handleSelect = (id: string) => {
-  //   setSelectedId((prev) => (prev === id ? null : id));
-  // };
   const handleSelect = (id: string) => {
-  console.log("Clicked job:", id);
-  setSelectedId(prev => (prev === id ? null : id));
-};
+    setSelectedId((prev) => (prev === id ? null : id));
+  };
 
-
-  const selectedJob = jobs.find((job) => job.id === selectedId);
+  const selectedJob = jobs?.find((job) => job.id === selectedId);
 
   return (
     <main className="p-6">
-      {/* the summary panel for only when a job is selected */}
+      {/* the summary panel, only when a job is selected */}
       {selectedJob && (
         <div className="mb-6 rounded border border-gray-300 bg-gray-100 p-4 dark:border-gray-700 dark:bg-gray-800">
-          <h2 className="text-lg font-bold text-gray-900 dark:text-white">{selectedJob.title}</h2>
-          <p className="text-gray-700 dark:text-gray-300">{selectedJob.company}</p>
+          <h2 className="text-lg font-bold text-gray-900 dark:text-white">
+            {selectedJob.title}
+          </h2>
+          <p className="text-gray-700 dark:text-gray-300">
+            {selectedJob.company}
+          </p>
         </div>
       )}
 
-      <JobList jobs={jobs} selectedId={selectedId} onSelect={handleSelect} />
+      {/* pending: skeleton only */}
+      {isPending && <JobListSkeleton />}
+
+      {/* error: styled panel with retry, no job grid */}
+      {isError && (
+        <div className="rounded border border-red-300 bg-red-50 p-4 dark:border-red-800 dark:bg-red-950">
+          <p className="text-red-700 dark:text-red-300">{error.message}</p>
+          <button
+            onClick={() => refetch()}
+            className="mt-3 rounded bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-600"
+          >
+            Try again
+          </button>
+        </div>
+      )}
+
+      {/* success: guard against jobs being undefined */}
+      {!isPending && !isError && jobs && (
+        <JobList jobs={jobs} selectedId={selectedId} onSelect={handleSelect} />
+      )}
     </main>
   );
 }
