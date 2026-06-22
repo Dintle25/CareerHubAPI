@@ -178,9 +178,6 @@ It combines:
 - Joins class names
 - Can add classes only when needed
 
-Example:
-```ts id="clsx-example"
-clsx("p-4", isActive && "bg-green-500")
 
 
 ## 3. What breaks if we merge them
@@ -193,3 +190,88 @@ Page may flicker
 Behavior becomes hard to debug
 
 Keeping them separate makes the app stable.
+
+## frontend 1.3 --------------------------------------------------------------------------------------------------------------------
+## -----------------------------------------------------------------------------------------------------------------
+## Part 1 — Written Decisions
+## 1. Server state vs client state
+
+useQuery gives you these features:
+
+Caching – It saves data, so pages load faster. Without it, users wait every time.
+Automatic refetching – It gets new data when needed. Without it, users may see old jobs.
+Loading and error states – It manages loading and errors for you. Without it, you must write extra code.
+Background updates – It updates data without removing it from the screen. Without it, users may see the page flash or become empty while loading.
+## 2. The queryKey contract
+
+The queryKey tells TanStack Query how to save, find, and share cached data.
+
+Wrong shared key: Two different queries use the same key. Users may see the wrong data because both components share one cache.
+Wrong unique key: Two components use different keys for the same data. Users may see extra loading because the data is fetched more than once.
+## 3. Why fetch does not throw on HTTP errors
+
+fetch() only throws an error if there is a network problem. If the server returns 404 or 500, fetch() still succeeds, but res.ok is false.
+
+If you do not check res.ok and throw an error, TanStack Query thinks the request was successful. The user may see empty or incorrect data instead of an error message.
+
+## 4. Stale-while-revalidate
+
+The default staleTime is 0, so the data becomes stale immediately.
+
+When the user returns to the browser tab, TanStack Query keeps the old data on the screen while it fetches new data in the background. When the new data is ready, it updates the page.
+
+With useEffect([]), the data is only fetched once when the page loads. When the user returns to the tab later, they will still see the old data because no new request is made automatically.
+
+## Updates
+
+## 1. What TanStack Query manages
+
+`useQuery` manages these automatically:
+
+* **Data** – Stores the fetched data. Without it, you need a `useState` for the data.
+* **Loading** – Tracks if data is loading. Without it, you need a loading state.
+* **Error** – Tracks request errors. Without it, you need an error state.
+* **Success** – Tracks if the request was successful. Without it, you need to check it yourself.
+* **Refetching** – Updates data automatically. Without it, you need `useEffect` and extra code to fetch again.
+
+---
+
+## 2. The queryKey design decision
+
+`["jobs"]` is the key used to store and find the jobs data in the cache.
+
+If jobs are filtered by location, use a key like:
+
+```text
+["jobs", "Auckland"]
+["jobs", "Wellington"]
+```
+
+The location must be part of the key so each location has its own cached data.
+
+---
+
+## 3. Skeleton design rationale
+
+`JobCardSkeleton` looks the same as `JobCard` so the page keeps the same layout while loading.
+
+Layout shift is when the page moves because new content changes the size or position of items.
+
+A matching skeleton keeps everything in the same place, so the page looks smooth.
+
+---
+
+## 4. Gate
+
+Run:
+
+```bash
+npm run build
+```
+
+The build must finish with:
+
+* **0 TypeScript errors**
+* **0 ESLint errors**
+
+Paste your final build output here after running the command.
