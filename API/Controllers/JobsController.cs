@@ -131,13 +131,14 @@ public class JobsController(IJobService jobService) : ControllerBase
         return Ok(job);
     }
 
-    [Authorize (Roles ="employer")] 
+    //[Authorize (Roles ="employer")] 
     [EnableRateLimiting("post-listing")]
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateJobRequest request)
     {
         var created = await jobService.CreateAsync(request);
-        return CreatedAtAction("GetJobById", new { id = created.Id }, created);
+        //return CreatedAtAction("GetJobById", new { id = created.Id }, created);
+        return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
     }
     
      
@@ -148,7 +149,7 @@ public class JobsController(IJobService jobService) : ControllerBase
         return Ok(updated);
     }
 
-    [Authorize (Roles ="employer")] 
+    //[Authorize (Roles ="employer")] 
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Close(Guid id)
     {

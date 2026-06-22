@@ -38,7 +38,10 @@ try
 
             options.JsonSerializerOptions.Converters.Add(
                 new System.Text.Json.Serialization.JsonStringEnumConverter());
+                
         });   //registering builder support
+
+        
 
     Builder.Services.AddProblemDetails();     // Turns all errors into standard format
 

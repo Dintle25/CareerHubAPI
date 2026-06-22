@@ -286,8 +286,5 @@ C:\Users\TrainingCenter 2\Documents\careerhub\CareerHubAPI\API\obj\Debug\net10.0
 C:\Users\TrainingCenter 2\Documents\careerhub\CareerHubAPI\API\obj\Debug\net10.0\API.pdb
 C:\Users\TrainingCenter 2\Documents\careerhub\CareerHubAPI\API\obj\Debug\net10.0\API.genruntimeconfig.cache
 C:\Users\TrainingCenter 2\Documents\careerhub\CareerHubAPI\API\obj\Debug\net10.0\ref\API.dll
-C:\Users\TrainingCenter 2\Documents\careerhub\CareerHubAPI\API\bin\Debug\net10.0\careerhub-frontend\package-lock.json
-C:\Users\TrainingCenter 2\Documents\careerhub\CareerHubAPI\API\bin\Debug\net10.0\careerhub-frontend\package.json
-C:\Users\TrainingCenter 2\Documents\careerhub\CareerHubAPI\API\bin\Debug\net10.0\careerhub-frontend\tsconfig.json
 C:\Users\TrainingCenter 2\Documents\careerhub\CareerHubAPI\API\bin\Debug\net10.0\Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore.dll
 C:\Users\Dintle\Pictures\Careerbubapi\CareerHubAPI\API\bin\Debug\net10.0\Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore.dll

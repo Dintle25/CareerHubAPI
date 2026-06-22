@@ -68,7 +68,7 @@ public class ApplicationsController(IApplicationService applicationService) : Co
         }
     }
 
-    [Authorize]
+    //[Authorize]
     [EnableRateLimiting("apply")]
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateApplicationRequest request)
