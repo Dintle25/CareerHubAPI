@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { JobListing } from "@/types";
 
-// Mock job listings — mirrors the seed data from Assignment 1.1.
-// Covers all four JobType values and includes inactive listings
-// so every visual state from Assignment 1.2 has data to render.
+// Mock job listings 
+// Create a list of mock jobs.
+// This acts like a fake database until a real backend is connected.
 const jobs: JobListing[] = [
   {
     id: "123e4567-e89b-12d3-a456-426614174000",
@@ -94,5 +94,6 @@ const jobs: JobListing[] = [
 // Only GET is exported, so Next.js automatically returns 405 for any
 // other HTTP method on this route — no extra handling needed.
 export async function GET() {
+   // Return the jobs array as a JSON response
   return NextResponse.json(jobs);
 }

@@ -364,7 +364,6 @@ public class JobRepository : IJobRepository
             .AsNoTracking()
             .Include(j => j.Company)
             .Include(j => j.Applications)
-                .ThenInclude(a => a.Applicant)
             .FirstOrDefaultAsync(j => j.Id == jobId);
     }
 

@@ -274,4 +274,44 @@ The build must finish with:
 * **0 TypeScript errors**
 * **0 ESLint errors**
 
-Paste your final build output here after running the command.
+## 1.4------------------------------------------------------------------------------------------------------------------------
+# Part 1 – Written Decisions
+
+## 1. Why `@hookform/resolvers` is a separate package
+
+React Hook Form and Zod are separate libraries because they can be used on their own. This makes them easier to maintain and update. The `@hookform/resolvers` package connects React Hook Form to Zod.
+
+`zodResolver` receives the form values from React Hook Form. It passes the values to the Zod schema to check if they are valid. It then returns the validated data if everything is correct, or returns the validation errors if there are any.
+
+---
+
+## 2. The number input problem
+
+HTML number inputs return the value as a **string**, even if the user types a number.
+
+**Solution A (`valueAsNumber: true`)** changes the value from a string to a number before React Hook Form sends it to Zod.
+
+**Solution B (`z.coerce.number()`)** lets Zod change the string into a number while it is validating the data.
+
+Both solutions produce the same TypeScript type because the final value is still a **number**. The only difference is **where** the conversion happens.
+
+---
+
+## 3. `mutate` vs `mutateAsync`
+
+When the form is submitted, `handleSubmit()` calls your submit function.
+
+`mutate()` starts the API request but does not wait for it to finish. Because of this, `isSubmitting` becomes `false` before the request is complete, so the submit button can be clicked again too early.
+
+`mutateAsync()` returns a Promise. `handleSubmit()` waits for that Promise to finish before setting `isSubmitting` to `false`. This keeps the submit button disabled until the request is complete.
+
+---
+
+## 4. `onSuccess` placement
+
+`onSuccess` can be placed inside `useMutation()` or inside `mutation.mutate()`.
+
+If it is inside `useMutation()`, it runs every time the mutation is successful.
+
+If it is inside `mutation.mutate()`, it only runs for that specific mutation call.
+

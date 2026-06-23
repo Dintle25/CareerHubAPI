@@ -21,17 +21,16 @@ public class ApplicationsController(IApplicationService applicationService) : Co
         return Ok(applications);
     }
 
-    [HttpGet("{applicantId:guid}/{jobId:guid}")]
-    public async Task<IActionResult> GetById(Guid applicantId, Guid jobId)
+    [HttpGet("{id:guid}")]
+    public async Task<IActionResult> GetById(Guid id)
     {
-        // var application = await applicationService.GetByIdAsync(applicantId, jobId);
-        // return application is null ? NotFound() : Ok(application);
-        var app = await applicationService.GetByIdAsync(applicantId, jobId);
+        var app = await applicationService.GetByIdAsync(id);
 
         if (app is null)
             return NotFound();
 
-        var etagRaw = $"{app.Id}-{app.Status}";
+        //var etagRaw = $"{app.Id}-{app.Status}";
+        var etagRaw = $"{app.Id}";
         var etag = $"\"{etagRaw.GetHashCode()}\"";
 
         if (Request.Headers.IfNoneMatch == etag)
@@ -43,7 +42,7 @@ public class ApplicationsController(IApplicationService applicationService) : Co
     }
 
     [HttpPatch("{id:guid}/status")]
-    
+
     [EndpointSummary("List an application")]
     [EndpointDescription(
         "Status transition validation belongs in the Service layer." +
@@ -77,20 +76,19 @@ public class ApplicationsController(IApplicationService applicationService) : Co
         return Ok(created);
     }
 
-    [HttpPut("{applicantId:guid}/{jobId:guid}")]
+    [HttpPut("{id:guid}")]
     public async Task<IActionResult> Update(
-        Guid applicantId,
-        Guid jobId,
-        [FromBody] UpdateApplicationRequest request)
+    Guid id,
+    [FromBody] UpdateApplicationRequest request)
     {
-        var updated = await applicationService.UpdateAsync(applicantId, jobId, request);
+        var updated = await applicationService.UpdateAsync(id, request);
         return Ok(updated);
     }
 
-    [HttpDelete("{applicantId:guid}/{jobId:guid}")]
-    public async Task<IActionResult> Delete(Guid applicantId, Guid jobId)
+    [HttpDelete("{id:guid}")]
+    public async Task<IActionResult> Delete(Guid id)
     {
-        await applicationService.DeleteAsync(applicantId, jobId);
+        await applicationService.DeleteAsync(id);
         return NoContent();
     }
 }

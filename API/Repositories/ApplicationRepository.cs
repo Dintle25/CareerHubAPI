@@ -11,34 +11,28 @@ public class ApplicationRepository(CareerHubDbContext context) : IApplicationRep
     {
         return await context.Applications
             .AsNoTracking()
-            .Include(a => a.Applicant)
             .Include(a => a.Job)
-            .Select(a => new ApplicationResponse
-            {
-                ApplicantId = a.ApplicantId,
-                JobId = a.JobId,
-                AppliedAt = a.AppliedAt,
-                Status = a.Status,
-                ApplicantName = a.Applicant.FirstName + " " + a.Applicant.LastName,
-                JobTitle = a.Job.Title
-            })
+           .Select(a => new ApplicationResponse
+           {
+               Id = a.Id,
+               JobId = a.JobId,
+               Email = a.Email,
+               SubmittedAt = a.AppliedAt.ToString("O")
+           })
             .ToListAsync();
     }
 
-    public async Task<Application?> GetApplicationAsync(Guid applicantId, Guid jobId)
+    public async Task<Application?> GetByIdAsync(Guid id)
     {
         return await context.Applications
-            .Include(a => a.Applicant)
             .Include(a => a.Job)
-            .FirstOrDefaultAsync(a =>
-                a.ApplicantId == applicantId &&
-                a.JobId == jobId);
+            .FirstOrDefaultAsync(a => a.Id == id);
     }
 
-    public async Task<bool> HasApplicantAppliedAsync(Guid applicantId, Guid jobId)
+    public async Task<bool> HasApplicationAsync(string email, Guid jobId)
     {
         return await context.Applications.AnyAsync(a =>
-            a.ApplicantId == applicantId &&
+            a.Email == email &&
             a.JobId == jobId);
     }
 
@@ -46,17 +40,7 @@ public class ApplicationRepository(CareerHubDbContext context) : IApplicationRep
     {
         return await context.Applications
             .AsNoTracking()
-            .Include(a => a.Applicant)
             .Where(a => a.JobId == jobId)
-            .ToListAsync();
-    }
-
-    public async Task<IEnumerable<Application>> GetApplicationsByApplicantAsync(Guid applicantId)
-    {
-        return await context.Applications
-            .AsNoTracking()
-            .Include(a => a.Job)
-            .Where(a => a.ApplicantId == applicantId)
             .ToListAsync();
     }
 
@@ -66,14 +50,6 @@ public class ApplicationRepository(CareerHubDbContext context) : IApplicationRep
         await context.SaveChangesAsync();
     }
 
-    public async Task<Application?> GetByIdAsync(Guid id)
-{
-    return await context.Applications
-        .Include(a => a.Applicant)
-        .Include(a => a.Job)
-        .FirstOrDefaultAsync(a => a.Id == id);
-}
-
     // Renamed from AddApplicationAsync → AddAsync to match IApplicationRepository
     public async Task AddAsync(Application application)
     {
@@ -82,32 +58,27 @@ public class ApplicationRepository(CareerHubDbContext context) : IApplicationRep
     }
 
     public async Task<Application?> UpdateApplicationStatusAsync(
-        Guid applicantId,
-        Guid jobId,
-        ApplicationStatus status)
+    Guid applicationId,
+    ApplicationStatus status)
     {
         var app = await context.Applications
-            .Include(a => a.Applicant)
-            .Include(a => a.Job)
-            .FirstOrDefaultAsync(a =>
-                a.ApplicantId == applicantId &&
-                a.JobId == jobId);
+            .FirstOrDefaultAsync(a => a.Id == applicationId);
 
-        if (app is null) return null;
+        if (app is null)
+            return null;
 
         app.Status = status;
+
         await context.SaveChangesAsync();
 
         return app;
     }
 
     // Renamed from DeleteApplicationAsync → DeleteAsync, returns bool
-    public async Task<bool> DeleteAsync(Guid applicantId, Guid jobId)
+    public async Task<bool> DeleteAsync(Guid applicationId)
     {
         var app = await context.Applications
-            .FirstOrDefaultAsync(a =>
-                a.ApplicantId == applicantId &&
-                a.JobId == jobId);
+    .FirstOrDefaultAsync(a => a.Id == applicationId);
 
         if (app is null) return false;
 

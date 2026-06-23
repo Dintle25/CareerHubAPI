@@ -30,3 +30,24 @@ const job: JobListing = {
   isActive: true,
   applicantCount: 12,
 };
+
+// Shape of the data the user fills in when applying for a job
+export interface ApplicationRequest {
+  jobId: string;
+  fullName: string;
+  email: string;
+  phone?: string;                // optional
+  yearsOfExperience: number;
+  coverLetter: string;
+  linkedInUrl?: string;          // optional
+  availableImmediately: boolean;
+  noticePeriodWeeks: number;
+}
+
+// Shape of the data the server sends back after a successful submission
+export interface ApplicationResponse {
+  id: string;
+  jobId: string;
+  email: string;
+  submittedAt: string;           // ISO timestamp string e.g. "2026-06-23T10:00:00.000Z"
+}

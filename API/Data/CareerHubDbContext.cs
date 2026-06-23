@@ -89,9 +89,9 @@ public class CareerHubDbContext(
             "CK_jobs_salary_range",
             "\"SalaryMin\" IS NULL OR \"SalaryMax\" IS NULL OR \"SalaryMax\" >= \"SalaryMin\"");
 
-                    t.HasCheckConstraint(
-            "CK_jobs_closing_after_posted",
-            "\"ClosingDate\" > \"PostedAt\"");
+                t.HasCheckConstraint(
+        "CK_jobs_closing_after_posted",
+        "\"ClosingDate\" > \"PostedAt\"");
             });
 
             entity.ToTable("jobs");
@@ -139,29 +139,64 @@ public class CareerHubDbContext(
         });
 
 
+        // modelBuilder.Entity<Application>(entity =>
+        // {
+        //     entity.ToTable("applications");
+
+        //     // Composite primary key
+        //     entity.HasKey(a => new
+        //     {
+        //         a.ApplicantId,
+        //         a.JobId
+        //     });
+
+        //     // Relationship to Applicant
+        //     entity.HasOne(a => a.Applicant)
+        //         .WithMany(a => a.Applications)
+        //         .HasForeignKey(a => a.ApplicantId)
+        //         .OnDelete(DeleteBehavior.Cascade);
+
+        //     // Relationship to Job
+        //     entity.HasOne(a => a.Job)
+        //         .WithMany(j => j.Applications)
+        //         .HasForeignKey(a => a.JobId)
+        //         .OnDelete(DeleteBehavior.Cascade);
+        // });
+
+
         modelBuilder.Entity<Application>(entity =>
-        {
-            entity.ToTable("applications");
+{
+    entity.ToTable("applications");
 
-            // Composite primary key
-            entity.HasKey(a => new
-            {
-                a.ApplicantId,
-                a.JobId
-            });
+    // Primary key
+    entity.HasKey(a => a.Id);
 
-            // Relationship to Applicant
-            entity.HasOne(a => a.Applicant)
-                .WithMany(a => a.Applications)
-                .HasForeignKey(a => a.ApplicantId)
-                .OnDelete(DeleteBehavior.Cascade);
+    entity.Property(a => a.Id)
+        .ValueGeneratedNever();
 
-            // Relationship to Job
-            entity.HasOne(a => a.Job)
-                .WithMany(j => j.Applications)
-                .HasForeignKey(a => a.JobId)
-                .OnDelete(DeleteBehavior.Cascade);
-        });
+    entity.Property(a => a.FullName)
+        .IsRequired()
+        .HasMaxLength(200);
+
+    entity.Property(a => a.Email)
+        .IsRequired()
+        .HasMaxLength(255);
+
+    entity.Property(a => a.Phone)
+        .HasMaxLength(30);
+
+    entity.Property(a => a.CoverLetter)
+        .IsRequired();
+
+    entity.Property(a => a.LinkedInUrl)
+        .HasMaxLength(500);
+
+    // Relationship to Job
+    entity.HasOne(a => a.Job)
+        .WithMany(j => j.Applications)
+        .HasForeignKey(a => a.JobId)
+        .OnDelete(DeleteBehavior.Cascade);
+});
 
 
     }

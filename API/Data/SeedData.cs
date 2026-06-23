@@ -165,8 +165,10 @@ public static class SeedData
                 Type = JobType.FullTime,
                 SalaryMin = 35000,
                 SalaryMax = 55000,
-                PostedAt = now,
-                ClosingDate = now.AddDays(30),
+                // PostedAt = now,
+                // ClosingDate = now.AddDays(30),
+                PostedAt = DateTime.UtcNow.AddDays(-10),
+                ClosingDate = DateTime.UtcNow.AddDays(20),
                 IsActive = true
             },
             new Job
@@ -179,8 +181,10 @@ public static class SeedData
                 Type = JobType.Internship,
                 SalaryMin = 8000,
                 SalaryMax = 12000,
-                PostedAt = now,
-                ClosingDate = now.AddDays(45),
+                // PostedAt = now,
+                // ClosingDate = now.AddDays(45),
+                PostedAt = DateTime.UtcNow.AddDays(-10),
+ClosingDate = DateTime.UtcNow.AddDays(20),
                 IsActive = true
             },
             new Job
@@ -193,8 +197,10 @@ public static class SeedData
                 Type = JobType.FullTime,
                 SalaryMin = 32000,
                 SalaryMax = 50000,
-                PostedAt = now,
-                ClosingDate = now.AddDays(30),
+                // PostedAt = now,
+                // ClosingDate = now.AddDays(30),
+                PostedAt = DateTime.UtcNow.AddDays(-10),
+ClosingDate = DateTime.UtcNow.AddDays(20),
                 IsActive = true
             },
             new Job
@@ -207,8 +213,10 @@ public static class SeedData
                 Type = JobType.FullTime,
                 SalaryMin = 40000,
                 SalaryMax = 60000,
-                PostedAt = now,
-                ClosingDate = now.AddDays(21),
+                // PostedAt = now,
+                // ClosingDate = now.AddDays(21),
+                PostedAt = DateTime.UtcNow.AddDays(-10),
+ClosingDate = DateTime.UtcNow.AddDays(20),
                 IsActive = true
             },
             new Job
@@ -221,8 +229,10 @@ public static class SeedData
                 Type = JobType.Contract,
                 SalaryMin = 45000,
                 SalaryMax = 70000,
-                PostedAt = now,
-                ClosingDate = now.AddDays(60),
+                // PostedAt = now,
+                // ClosingDate = now.AddDays(60),
+                PostedAt = DateTime.UtcNow.AddDays(-10),
+ClosingDate = DateTime.UtcNow.AddDays(20),
                 IsActive = true
             },
             new Job
@@ -235,8 +245,10 @@ public static class SeedData
                 Type = JobType.PartTime,
                 SalaryMin = 18000,
                 SalaryMax = 25000,
-                PostedAt = now,
-                ClosingDate = now.AddDays(14),
+                // PostedAt = now,
+                // ClosingDate = now.AddDays(14),
+                PostedAt = DateTime.UtcNow.AddDays(-10),
+ClosingDate = DateTime.UtcNow.AddDays(20),
                 IsActive = true
             },
             new Job
@@ -250,8 +262,10 @@ public static class SeedData
                 SalaryMin = 30000,
                 SalaryMax = 42000,
                 // Closed listing — useful for testing IsActive / date filters.
-                PostedAt = now.AddDays(-40),
-                ClosingDate = now.AddDays(-10),
+                // PostedAt = now.AddDays(-40),
+                // ClosingDate = now.AddDays(-10),
+                PostedAt = DateTime.UtcNow.AddDays(-10),
+ClosingDate = DateTime.UtcNow.AddDays(20),
                 IsActive = false
             }
         };
@@ -299,64 +313,100 @@ public static class SeedData
         // ---- Applications ----
         // Composite key is (ApplicantId, JobId) — each applicant
         // can only apply to a given job once.
-        var applications = new List<Application>
-        {
-            new Application
-            {
-                ApplicantId = applicants[0].Id, // John Doe
-                JobId = jobs[0].Id,              // .NET Developer
-                AppliedAt = now.AddDays(-5),
-                Status = ApplicationStatus.UnderReview
-            },
-            new Application
-            {
-                ApplicantId = applicants[0].Id, // John Doe
-                JobId = jobs[4].Id,              // Cloud Engineer
-                AppliedAt = now.AddDays(-2),
-                Status = ApplicationStatus.Submitted
-            },
-            new Application
-            {
-                ApplicantId = applicants[1].Id, // Jane Smith
-                JobId = jobs[2].Id,              // Frontend Developer
-                AppliedAt = now.AddDays(-7),
-                Status = ApplicationStatus.Shortlisted
-            },
-            new Application
-            {
-                ApplicantId = applicants[1].Id, // Jane Smith
-                JobId = jobs[0].Id,              // .NET Developer
-                AppliedAt = now.AddDays(-6),
-                Status = ApplicationStatus.Rejected
-            },
-            new Application
-            {
-                ApplicantId = applicants[2].Id, // Thabo Nkosi
-                JobId = jobs[3].Id,              // Database Administrator
-                AppliedAt = now.AddDays(-3),
-                Status = ApplicationStatus.Offered
-            },
-            new Application
-            {
-                ApplicantId = applicants[3].Id, // Aisha Patel
-                JobId = jobs[5].Id,              // QA Tester
-                AppliedAt = now.AddDays(-1),
-                Status = ApplicationStatus.Submitted
-            },
-            new Application
-            {
-                ApplicantId = applicants[4].Id, // Pieter van der Merwe
-                JobId = jobs[1].Id,              // Backend Intern
-                AppliedAt = now.AddDays(-4),
-                Status = ApplicationStatus.Rejected
-            }
-        };
+    //     var applications = new List<Application>
+    //     {
+    //         new Application
+    //         {
+    //             ApplicantId = applicants[0].Id, // John Doe
+    //             JobId = jobs[0].Id,              // .NET Developer
+    //             AppliedAt = now.AddDays(-5),
+    //             Status = ApplicationStatus.UnderReview
+    //         },
+    //         new Application
+    //         {
+    //             ApplicantId = applicants[0].Id, // John Doe
+    //             JobId = jobs[4].Id,              // Cloud Engineer
+    //             AppliedAt = now.AddDays(-2),
+    //             Status = ApplicationStatus.Submitted
+    //         },
+    //         new Application
+    //         {
+    //             ApplicantId = applicants[1].Id, // Jane Smith
+    //             JobId = jobs[2].Id,              // Frontend Developer
+    //             AppliedAt = now.AddDays(-7),
+    //             Status = ApplicationStatus.Shortlisted
+    //         },
+    //         new Application
+    //         {
+    //             ApplicantId = applicants[1].Id, // Jane Smith
+    //             JobId = jobs[0].Id,              // .NET Developer
+    //             AppliedAt = now.AddDays(-6),
+    //             Status = ApplicationStatus.Rejected
+    //         },
+    //         new Application
+    //         {
+    //             ApplicantId = applicants[2].Id, // Thabo Nkosi
+    //             JobId = jobs[3].Id,              // Database Administrator
+    //             AppliedAt = now.AddDays(-3),
+    //             Status = ApplicationStatus.Offered
+    //         },
+    //         new Application
+    //         {
+    //             ApplicantId = applicants[3].Id, // Aisha Patel
+    //             JobId = jobs[5].Id,              // QA Tester
+    //             AppliedAt = now.AddDays(-1),
+    //             Status = ApplicationStatus.Submitted
+    //         },
+    //         new Application
+    //         {
+    //             ApplicantId = applicants[4].Id, // Pieter van der Merwe
+    //             JobId = jobs[1].Id,              // Backend Intern
+    //             AppliedAt = now.AddDays(-4),
+    //             Status = ApplicationStatus.Rejected
+    //         }
+    //     };
 
-        db.Companies.AddRange(companies);
-        db.Jobs.AddRange(jobs);
-        db.Applicants.AddRange(applicants);
-        db.Applications.AddRange(applications);
+    //     db.Companies.AddRange(companies);
+    //     db.Jobs.AddRange(jobs);
+    //     db.Applicants.AddRange(applicants);
+    //     db.Applications.AddRange(applications);
 
-        await db.SaveChangesAsync();
+    //     await db.SaveChangesAsync();
+    // }
+
+    // ---- Applications ----
+var applications = new List<Application>
+{
+    new Application
+    {
+        Id = Guid.NewGuid(),
+        JobId = jobs[0].Id,
+        FullName = "John Doe",
+        Email = "john.doe@example.com",
+        Phone = "0821234567",
+        YearsOfExperience = 3,
+        CoverLetter = "I would like to apply for this role.",
+        LinkedInUrl = "https://linkedin.com/in/johndoe",
+        AvailableImmediately = true,
+        NoticePeriodWeeks = 0,
+        AppliedAt = now.AddDays(-5),
+        Status = ApplicationStatus.UnderReview
+    },
+    new Application
+    {
+        Id = Guid.NewGuid(),
+        JobId = jobs[2].Id,
+        FullName = "Jane Smith",
+        Email = "jane.smith@example.com",
+        Phone = "0835551234",
+        YearsOfExperience = 5,
+        CoverLetter = "I have extensive frontend experience.",
+        LinkedInUrl = "https://linkedin.com/in/janesmith",
+        AvailableImmediately = false,
+        NoticePeriodWeeks = 4,
+        AppliedAt = now.AddDays(-2),
+        Status = ApplicationStatus.Submitted
     }
+};
+}
 }

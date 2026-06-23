@@ -12,14 +12,15 @@ interface ProvidersProps {
 }
 
 export default function Providers({ children }: ProvidersProps) {
-  // useState initialiser form ensures the QueryClient is created once
-  // per component instance (not shared across requests on the server,
-  // and not re-created on every render on the client).
+  // Create one QueryClient instance.
+  // useState makes sure it is only created once and reused.
   const [queryClient] = useState(() => new QueryClient());
 
   return (
+     // Give the QueryClient to the whole application
     <QueryClientProvider client={queryClient}>
       {children}
+      {/* Show the TanStack Query DevTools in the browser. */}
       <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>
   );
