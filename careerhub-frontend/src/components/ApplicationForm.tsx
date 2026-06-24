@@ -128,6 +128,7 @@ export default function ApplicationForm({ jobId, jobTitle }: ApplicationFormProp
 
   // Only called by RHF when ALL Zod validations pass
   const onValid = async (data: ApplicationFormData) => {
+    console.log("SUBMITTING:", data);
     // Cast to output type and clean up empty optional strings before sending to API
     const output = data as unknown as ApplicationOutput;
     await mutation.mutateAsync({
@@ -172,7 +173,8 @@ export default function ApplicationForm({ jobId, jobTitle }: ApplicationFormProp
 
       {/* noValidate — stops the browser showing its own validation popups before Zod runs.
           Without it the user sees two different error systems at the same time. */}
-      <form onSubmit={handleSubmit(onValid)} noValidate className="space-y-5">
+      {/* <form onSubmit={handleSubmit(onValid)} noValidate className="space-y-5"> */}
+      <form onSubmit={handleSubmit(onValid, (errors) => console.log("VALIDATION ERRORS:", errors))} noValidate className="space-y-5">
 
         {/* Full Name */}
         <div>

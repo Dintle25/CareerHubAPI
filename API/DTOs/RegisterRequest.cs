@@ -2,14 +2,12 @@ using System.ComponentModel.DataAnnotations;
 
 namespace API.DTOs;
 
-public class CreateApplicantRequest
+public class RegisterRequest
 {
     [Required]
-    [MaxLength(100)]
     public string FirstName { get; set; } = string.Empty;
 
     [Required]
-    [MaxLength(100)]
     public string LastName { get; set; } = string.Empty;
 
     [Required]

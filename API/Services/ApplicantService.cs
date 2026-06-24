@@ -31,16 +31,36 @@ public class ApplicantService(IApplicantRepository applicantRepository) : IAppli
         };
     }
 
-    public async Task<ApplicantResponse> CreateAsync(CreateApplicantRequest request)
-    {
-        var applicant = new Applicant
-        {
-            Id = Guid.NewGuid(),
-            FirstName = request.FirstName,
-            LastName = request.LastName,
-            Email = request.Email
-        };
+    // public async Task<ApplicantResponse> CreateAsync(CreateApplicantRequest request)
+    // {
+    //     var applicant = new Applicant
+    //     {
+    //         Id = Guid.NewGuid(),
+    //         FirstName = request.FirstName,
+    //         LastName = request.LastName,
+    //         Email = request.Email
+    //     };
 
-        return await applicantRepository.AddAsync(applicant);
-    }
+    //     return await applicantRepository.AddAsync(applicant);
+    // }
+
+    public async Task<ApplicantResponse> CreateAsync(CreateApplicantRequest request)
+{
+    // Check for duplicate email before creating
+    var existing = await applicantRepository.GetByEmailAsync(request.Email);
+    if (existing is not null)
+        throw new InvalidOperationException("An account with this email already exists.");
+
+    var applicant = new Applicant
+    {
+        Id = Guid.NewGuid(),
+        FirstName = request.FirstName,
+        LastName = request.LastName,
+        Email = request.Email,
+        // Hash the password — BCrypt handles salting automatically
+        PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password)
+    };
+
+    return await applicantRepository.AddAsync(applicant);
+}
 }

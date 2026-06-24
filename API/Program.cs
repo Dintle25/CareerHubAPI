@@ -31,6 +31,8 @@ try
     Builder.Host.UseSerilog();
 
 
+    Microsoft.IdentityModel.Logging.IdentityModelEventSource.ShowPII = true;
+
     //Registering the services
     Builder.Services.AddControllers()
     .AddJsonOptions(options =>
@@ -56,9 +58,9 @@ try
         options.AddPolicy("FrontEndPolicy", policy =>
         {
             policy
-                .AllowAnyOrigin()
+                //.AllowAnyOrigin()
                 // Allow requests from the Next.js frontend
-                .WithOrigins("http://localhost:3000")
+                .WithOrigins("http://localhost:3000","http://localhost:5076")
 
                 // Allow all request headers
                 .AllowAnyHeader()
@@ -189,7 +191,8 @@ Builder.Services.AddScoped<CareerHubDocumentTransformer>();
     {
         // Connect EF Core to PostgreSQL
         options.UseNpgsql(
-            Builder.Configuration.GetConnectionString("DefaultConnection"));
+            Builder.Configuration.GetConnectionString("DefaultConnection"))
+                    .UseSnakeCaseNamingConvention();
     });
 
     Builder.Host.UseDefaultServiceProvider(options =>
@@ -227,11 +230,6 @@ Builder.Services.AddScoped<CareerHubDocumentTransformer>();
     }
 
     //Error Handling
-
-
-
-
-
     app.UseSerilogRequestLogging();
     // Apply the CORS policy for frontend requests
     app.UseCors("FrontEndPolicy");
@@ -241,7 +239,7 @@ Builder.Services.AddScoped<CareerHubDocumentTransformer>();
                                    // Redirect HTTP requests to HTTPS
     app.UseHttpsRedirection();
 
-    app.UseCors("CareerHubCors");
+   // app.UseCors("CareerHubCors");
 
     app.UseRateLimiter();
     // Check if the user is authenticated

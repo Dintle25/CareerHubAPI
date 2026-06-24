@@ -99,12 +99,16 @@ import { JobListSkeleton } from "@/components/JobCardSkeleton";
 import ApplicationForm from "@/components/ApplicationForm";
 import { fetchJobs } from "@/lib/api";
 import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/context/AuthContext";  
+import { useRouter } from "next/navigation"; 
 import React, { useEffect, useState } from "react";
 
 // Session storage key
 const STORAGE_KEY = "selectedJobId";
 
 export default function Home() {
+   const { isAuthenticated } = useAuth();  
+  const router = useRouter();
   const {
     data: jobs,
     isPending,
@@ -185,7 +189,21 @@ export default function Home() {
           The selection panel above stays visible alongside the form. */}
       {!isPending && !isError && selectedJob && (
         <div className="mt-8">
-          <ApplicationForm jobId={selectedJob.id} jobTitle={selectedJob.title} />
+          {isAuthenticated ? (
+            <ApplicationForm jobId={selectedJob.id} jobTitle={selectedJob.title} />
+          ) : (
+            <div className="rounded border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-950">
+              <p className="text-blue-800 dark:text-blue-200 text-sm">
+                You need to be signed in to apply for this job.
+              </p>
+              <button
+                onClick={() => router.push("/login")}
+                className="mt-3 rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+              >
+                Sign in to apply
+              </button>
+            </div>
+          )}
         </div>
       )}
     </main>

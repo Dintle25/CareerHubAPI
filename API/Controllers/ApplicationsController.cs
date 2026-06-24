@@ -21,16 +21,17 @@ public class ApplicationsController(IApplicationService applicationService) : Co
         return Ok(applications);
     }
 
-    [HttpGet("{id:guid}")]
-    public async Task<IActionResult> GetById(Guid id)
+    [HttpGet("{applicantId:guid}/{jobId:guid}")]
+    public async Task<IActionResult> GetById(Guid applicantId, Guid jobId)
     {
-        var app = await applicationService.GetByIdAsync(id);
+        // var application = await applicationService.GetByIdAsync(applicantId, jobId);
+        // return application is null ? NotFound() : Ok(application);
+        var app = await applicationService.GetByIdAsync(applicantId, jobId);
 
         if (app is null)
             return NotFound();
 
-        //var etagRaw = $"{app.Id}-{app.Status}";
-        var etagRaw = $"{app.Id}";
+        var etagRaw = $"{app.Id}-{app.Status}";
         var etag = $"\"{etagRaw.GetHashCode()}\"";
 
         if (Request.Headers.IfNoneMatch == etag)
@@ -42,7 +43,7 @@ public class ApplicationsController(IApplicationService applicationService) : Co
     }
 
     [HttpPatch("{id:guid}/status")]
-
+    
     [EndpointSummary("List an application")]
     [EndpointDescription(
         "Status transition validation belongs in the Service layer." +
@@ -67,7 +68,7 @@ public class ApplicationsController(IApplicationService applicationService) : Co
         }
     }
 
-    //[Authorize]
+    [Authorize]
     [EnableRateLimiting("apply")]
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateApplicationRequest request)
@@ -76,19 +77,20 @@ public class ApplicationsController(IApplicationService applicationService) : Co
         return Ok(created);
     }
 
-    [HttpPut("{id:guid}")]
+    [HttpPut("{applicantId:guid}/{jobId:guid}")]
     public async Task<IActionResult> Update(
-    Guid id,
-    [FromBody] UpdateApplicationRequest request)
+        Guid applicantId,
+        Guid jobId,
+        [FromBody] UpdateApplicationRequest request)
     {
-        var updated = await applicationService.UpdateAsync(id, request);
+        var updated = await applicationService.UpdateAsync(applicantId, jobId, request);
         return Ok(updated);
     }
 
-    [HttpDelete("{id:guid}")]
-    public async Task<IActionResult> Delete(Guid id)
+    [HttpDelete("{applicantId:guid}/{jobId:guid}")]
+    public async Task<IActionResult> Delete(Guid applicantId, Guid jobId)
     {
-        await applicationService.DeleteAsync(id);
+        await applicationService.DeleteAsync(applicantId, jobId);
         return NoContent();
     }
 }
