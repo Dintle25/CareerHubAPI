@@ -315,3 +315,32 @@ If it is inside `useMutation()`, it runs every time the mutation is successful.
 
 If it is inside `mutation.mutate()`, it only runs for that specific mutation call.
 
+
+## 2.1-----------------------------------------------------------------------------------------------------------------
+1. cache: "no-store" vs the default
+
+cache: "no-store" tells Next.js not to use its server-side fetch cache. Every request gets fresh data from the API.
+
+The default cache is useful when the data does not change often, like a list of categories or company information. It makes the website load faster because Next.js can reuse the saved response.
+
+This is different from TanStack Query. Next.js stores the cache on the server, while TanStack Query stores the cache in the browser. TanStack Query also has staleTime and can automatically refetch data, but Next.js fetch caching does not.
+
+## 2. The "use client" boundary
+
+"use client" marks a file (module) as a Client Component.
+
+The Server Component loads the data and sends the page HTML to the browser. The Client Component adds interactivity, such as forms, buttons, and event handlers.
+
+When the browser opens /jobs/some-id, it first receives the HTML from the Server Component. Then it downloads the JavaScript for the Client Component, which is hydrated so the interactive features start working.
+
+## 3. Why params.id is always a string
+
+Next.js always treats route parameters as strings because they come from the URL. It does not know if the value is a number, GUID, or slug.
+
+If the API accepts a string GUID, no conversion is needed. You can pass params.id directly to the fetch request because it is already a string.
+
+## 4. What "layout persists" means
+
+When a layout persists, React keeps the same layout component while moving between pages. The layout is not destroyed or recreated, and its state is not reset.
+
+If the layout needs updated data, such as the number of active job listings, the data can be fetched again on the server. For example, you can fetch the latest count in the layout or use revalidate so Next.js updates the cached data without making the layout a Client Component.

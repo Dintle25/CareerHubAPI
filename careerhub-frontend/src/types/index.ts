@@ -9,12 +9,13 @@ export interface JobListing {
   title: string;
   company: string;
   location: string;
-  jobType: JobType; 
+  type: JobType; 
   salaryMin: number;
   salaryMax: number;
   postedAt: string; // ISO 8601 date
   isActive: boolean;
-  applicantCount: number;
+  applicationCount: number;
+   description?: string;
 }
 
 //a test
@@ -23,12 +24,13 @@ const job: JobListing = {
   title: "Frontend Developer",
   company: "CareerHub",
   location: "Remote",
-  jobType: "FullTime",
+  type: "FullTime",
   salaryMin: 45000,
   salaryMax: 65000,
   postedAt: "2026-06-17T09:00:00Z",
   isActive: true,
-  applicantCount: 12,
+  applicationCount: 12,
+  description: "Lead QA strategy and mentor junior testers across multiple product team"
 };
 
 // Shape of the data the user fills in when applying for a job
