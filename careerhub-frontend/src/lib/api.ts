@@ -139,4 +139,4 @@ export async function submitApplication(
   }
 
   return res.json() as Promise<ApplicationResponse>;
-}
+} 
