@@ -9,7 +9,7 @@ import JobLinkCard from "@/components/JobLinkCard";
 // so the error bubbles up instead of showing an empty page silently.
 async function getJobs(): Promise<JobListing[]> {
   const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/jobs`, {
-    cache: "no-store",
+    next: { tags: ["jobs"] }, // cache and invalidate together with revalidateTag("jobs")
   });
 
   if (!res.ok) {

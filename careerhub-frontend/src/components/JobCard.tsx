@@ -64,7 +64,7 @@ const JobCard: React.FC<JobCardProps> = ({ job, isSelected, onSelect }) => {
 
       {/* employment type as a badge */}
       <JobStatusBadge
-        employmentType={job.jobType}
+        employmentType={job.type}
         isActive={job.isActive}
       />
 
@@ -76,9 +76,9 @@ const JobCard: React.FC<JobCardProps> = ({ job, isSelected, onSelect }) => {
 
 
       {/* applicant count (only if > 0) */}
-      {job.applicantCount > 0 && (
+      {job.applicationCount > 0 && (
         <p className="text-sm text-gray-700 dark:text-gray-300">
-          {job.applicantCount} applicants
+          {job.applicationCount} applicants
         </p>
       )}
     </div>

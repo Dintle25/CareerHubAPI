@@ -344,3 +344,46 @@ If the API accepts a string GUID, no conversion is needed. You can pass params.i
 When a layout persists, React keeps the same layout component while moving between pages. The layout is not destroyed or recreated, and its state is not reset.
 
 If the layout needs updated data, such as the number of active job listings, the data can be fetched again on the server. For example, you can fetch the latest count in the layout or use revalidate so Next.js updates the cached data without making the layout a Client Component.
+
+## 2.2-------------------------------------------------------------------------------------------------------------------
+## 1. Choosing a cache strategy per data source
+Jobs list: Use next: { tags: ["jobs"] } because jobs do not change often. The cache is cleared when a job is added, updated, or closed.
+Single job detail: Use next: { tags: ["jobs"] } because the job details only change when the job is edited or closed.
+Application statistics: Use cache: "no-store" because the numbers change often when people apply for jobs. The data should always be fresh.
+
+Application statistics use a different strategy because they change much more often than job listings.
+
+Both /jobs/page.tsx and /dashboard/listings/page.tsx use the same "jobs" tag because they both show the same job data. When a job changes, both pages should update together.
+
+## 2. Why revalidateTag works across routes
+
+The tag cache is stored on the Next.js server, not in the browser or a CDN.
+
+The "jobs" tag is shared by the whole application. This means revalidateTag("jobs") can clear cached data from any route that uses the same tag, even if the files are in different folders.
+
+After revalidation, the first request to /jobs is not served from the cache. Next.js fetches fresh data, stores it in the cache again, and then sends it to the user.
+
+## 3. What Promise.all failure means for your page
+
+With the current implementation, if getApplicationStats() fails, Promise.all() also fails. The page shows an error instead of loading the dashboard.
+
+Two ways to show partial data are:
+
+Fetch the jobs and statistics separately, so if the statistics fail, the jobs table still loads.
+Use separate Suspense or Error Boundaries, so the jobs table loads while the statistics show an error message or fallback.
+
+For a production employer dashboard, I would choose separate Suspense and Error Boundaries because users can still see and use the jobs table even if the statistics are unavailable.
+
+## 4. The two-boundary vs one-boundary trade-off
+
+With two Suspense boundaries:
+
+T = 0 ms: The page loads with loading placeholders for both sections.
+T = 120 ms: The Applications Summary appears because it finished loading.
+T = 450 ms: The Listings Table appears after its data finishes loading.
+T = 451 ms: The whole page is complete.
+
+With one Suspense boundary:
+
+T = 120 ms: The user still sees the loading placeholder because both components must finish before anything is shown.
+The page only appears after the slower Listings Table is ready. This makes the page feel slower because users wait longer to see any content.

@@ -13,7 +13,7 @@ import JobStatusBadge from "@/components/JobStatusBadge";
 async function getJob(id: string): Promise<JobListing> {
   const res = await fetch(
     `${process.env.NEXT_PUBLIC_API_URL}/api/jobs/${id}`,
-    { cache: "no-store" } // always fetch fresh — never serve a stale detail page
+     { next: { tags: ["jobs"] } } // same tag — cleared when any job changes
   );
 
   if (res.status === 404) {
