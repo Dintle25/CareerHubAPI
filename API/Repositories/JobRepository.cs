@@ -275,7 +275,6 @@ public class JobRepository : IJobRepository
             .AsNoTracking()
             .Include(j => j.Company)
             .Include(j => j.Applications)
-            .Where(j => j.IsActive)
             .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(filter.Location))
@@ -311,13 +310,13 @@ public class JobRepository : IJobRepository
         query = (filter.Sort.ToLower(), filter.Dir?.ToLower()) switch
         {
             ("salarymin", "desc") => query.OrderByDescending(j => j.SalaryMin),
-            ("salarymin", _)      => query.OrderBy(j => j.SalaryMin),
-            ("salarymax", "asc")  => query.OrderBy(j => j.SalaryMax),
-            ("salarymax", _)      => query.OrderByDescending(j => j.SalaryMax),
-            ("title", "desc")     => query.OrderByDescending(j => j.Title),
-            ("title", _)          => query.OrderBy(j => j.Title),
-            ("postedat", "asc")   => query.OrderBy(j => j.PostedAt),
-            _                     => query.OrderByDescending(j => j.PostedAt)
+            ("salarymin", _) => query.OrderBy(j => j.SalaryMin),
+            ("salarymax", "asc") => query.OrderBy(j => j.SalaryMax),
+            ("salarymax", _) => query.OrderByDescending(j => j.SalaryMax),
+            ("title", "desc") => query.OrderByDescending(j => j.Title),
+            ("title", _) => query.OrderBy(j => j.Title),
+            ("postedat", "asc") => query.OrderBy(j => j.PostedAt),
+            _ => query.OrderByDescending(j => j.PostedAt)
         };
 
         var totalCount = await query.CountAsync();
@@ -457,5 +456,51 @@ public class JobRepository : IJobRepository
                 ApplicationCount = j.Applications.Count()
             })
             .ToListAsync();
+    }
+
+
+    // Returns all jobs including closed ones — used by the employer dashboard
+    public async Task<PagedResponse<JobResponse>> GetAllListingsPagedAsync(
+        int page,
+        int pageSize)
+    {
+        var query = _context.Jobs
+            .AsNoTracking()
+            .Include(j => j.Company)
+            .Include(j => j.Applications)
+            .OrderByDescending(j => j.PostedAt)
+            .AsQueryable();
+
+        var totalCount = await query.CountAsync();
+
+        var items = await query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(j => new JobResponse
+            {
+                Id = j.Id,
+                Title = j.Title,
+                Description = j.Description,
+                Company = j.Company.Name,
+                Location = j.Location,
+                Type = j.Type,
+                ClosingDate = j.ClosingDate,
+                PostedAt = j.PostedAt,
+                IsActive = j.IsActive,
+                SalaryMin = j.SalaryMin,
+                SalaryMax = j.SalaryMax,
+                SalaryDisplay = j.SalaryMin.HasValue && j.SalaryMax.HasValue
+                    ? $"R{j.SalaryMin:N0} – R{j.SalaryMax:N0} pm"
+                    : "Not specified",
+                ApplicationCount = j.Applications.Count()
+            })
+            .ToListAsync();
+
+        var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+
+        return new PagedResponse<JobResponse>(
+            items, page, pageSize, totalCount, totalPages,
+            page < totalPages, page > 1
+        );
     }
 }

@@ -30,5 +30,7 @@ public interface IJobRepository
 
     Task CloseListingAsync(Guid jobId);
 
+    Task<PagedResponse<JobResponse>> GetAllListingsPagedAsync(int page, int pageSize);
+
 
 }

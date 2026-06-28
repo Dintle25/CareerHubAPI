@@ -328,7 +328,7 @@ public class JobService(
         await jobRepository.CloseListingAsync(existing.Id);
     }
 
-    // ── Helpers ─────────────────────────────────────────────────────────────
+    //  Helpers ----------------------------------------------------------------------------------------------------
 
     /// <summary>
     /// PostgreSQL requires DateTimeKind.Utc for 'timestamp with time zone'.
@@ -344,9 +344,9 @@ public class JobService(
         (min, max) switch
         {
             (not null, not null) => $"R{min.Value:N0} – R{max.Value:N0} pm",
-            (not null, null)     => $"From R{min.Value:N0} pm",
-            (null, not null)     => $"Up to R{max.Value:N0} pm",
-            _                    => "N/A"
+            (not null, null) => $"From R{min.Value:N0} pm",
+            (null, not null) => $"Up to R{max.Value:N0} pm",
+            _ => "N/A"
         };
 
     private static JobResponse MapToResponse(Job job) => new()
@@ -365,4 +365,10 @@ public class JobService(
         SalaryDisplay = FormatSalary(job.SalaryMin, job.SalaryMax),
         ApplicationCount = job.Applications?.Count ?? 0
     };
+
+    // Returns all jobs including closed ones — used by the employer dashboard
+    public async Task<PagedResponse<JobResponse>> GetAllListingsPagedAsync(int page, int pageSize)
+    {
+        return await jobRepository.GetAllListingsPagedAsync(page, pageSize);
+    }
 }
