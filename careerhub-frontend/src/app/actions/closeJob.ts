@@ -1,15 +1,14 @@
 "use server";
 
 // Server Action — runs on the server only, never in the browser.
-// Closes a job listing by sending PATCH to the API, then invalidates
-// the "jobs" cache tag so both /jobs and /dashboard/listings fetch fresh data.
+// Uses DELETE on the real .NET API which sets isActive = false in the database
+// without actually removing the record — it just closes the listing.
+// Then invalidates the "jobs" cache so both /jobs and /dashboard/listings
+// show the updated status on the next page load.
 
 import { revalidateTag } from "next/cache";
 
-// Discriminated union for the action state.
-// null = initial state (no action fired yet)
-// success = job was closed — includes the job title for confirmation
-// error = something went wrong — includes a message for the user
+// null = not fired yet, success = job closed, error = something went wrong
 export type CloseJobState =
   | { status: "success"; jobTitle: string }
   | { status: "error"; message: string }
@@ -19,25 +18,29 @@ export async function closeJobListing(
   prevState: CloseJobState,
   formData: FormData
 ): Promise<CloseJobState> {
-  // Read jobId from the hidden form input
+  // Read the jobId from the hidden form input
   const jobId = formData.get("jobId");
 
-  // Return an error immediately if jobId is missing — no network call needed
+  // Return error immediately if jobId is missing — no network call needed
   if (!jobId || typeof jobId !== "string" || jobId.trim() === "") {
     return { status: "error", message: "Job ID is missing. Please try again." };
   }
 
-  // Send PATCH to the API to update the job status to Closed
+  // First fetch the job title so we can show it in the success message
+  const jobRes = await fetch(
+    `${process.env.NEXT_PUBLIC_API_URL}/api/jobs/${jobId}`
+  );
+  const jobData = await jobRes.json().catch(() => ({}));
+  const jobTitle = jobData.title ?? "the job";
+
+  // DELETE closes the job in the database (sets isActive = false)
+  // The real .NET API uses DELETE for closing, not PATCH
   const res = await fetch(
     `${process.env.NEXT_PUBLIC_API_URL}/api/jobs/${jobId}`,
-    {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: "Closed" }),
-    }
+    { method: "DELETE" }
   );
 
-  // If the PATCH failed, read the API's error detail and return an error state
+  // Return error if the API call failed
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     return {
@@ -46,11 +49,11 @@ export async function closeJobListing(
     };
   }
 
-  const job = await res.json();
+  // Clear the "jobs" cache — next visit to /jobs or /dashboard/listings
+  // will fetch fresh data from the API showing the job as closed
+  revalidateTag("jobs","page");
 
-  // Invalidate the "jobs" cache tag — next request to /jobs or /dashboard/listings
-  // will fetch fresh data instead of serving the stale cached response
-  revalidateTag("jobs","max");
-
-  return { status: "success", jobTitle: job.title };
+  return { status: "success", jobTitle };
 }
+
+

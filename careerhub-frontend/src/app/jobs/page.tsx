@@ -9,7 +9,7 @@ import JobLinkCard from "@/components/JobLinkCard";
 // so the error bubbles up instead of showing an empty page silently.
 async function getJobs(): Promise<JobListing[]> {
   const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/jobs`, {
-    next: { tags: ["jobs"] }, // cache and invalidate together with revalidateTag("jobs")
+    next: { tags: ["jobs"] },
   });
 
   if (!res.ok) {
@@ -17,8 +17,10 @@ async function getJobs(): Promise<JobListing[]> {
   }
 
   const data = await res.json();
-  console.log("RAW API RESPONSE:", JSON.stringify(data).slice(0, 300));
-return Array.isArray(data) ? data : data.data ?? [];
+  const all = Array.isArray(data) ? data : data.data ?? data.value ?? [];
+
+  // Only show active jobs to candidates — closed jobs are hidden
+  return all.filter((job: JobListing) => job.isActive);
 }
 
 export default async function JobsPage() {
