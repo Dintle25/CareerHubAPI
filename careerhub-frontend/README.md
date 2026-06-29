@@ -387,3 +387,139 @@ With one Suspense boundary:
 
 T = 120 ms: The user still sees the loading placeholder because both components must finish before anything is shown.
 The page only appears after the slower Listings Table is ready. This makes the page feel slower because users wait longer to see any content.
+
+
+## --------------------------------------------------------------------------------------------------------------------
+# Part 1 – Written Decisions
+
+## Question 1. Mapping CareerHub roles to route protection rules
+
+| Route                 | Who can access | If not allowed                                 | Where handled |
+| --------------------- | -------------- | ---------------------------------------------- | ------------- |
+| `/jobs`               | Everyone       | No redirect                                    | Page          |
+| `/jobs/[id]`          | Everyone       | No redirect                                    | Page          |
+| `/login`              | Everyone       | Logged-in users go to dashboard or jobs        | Page          |
+| `/dashboard`          | Employers only | Not logged in → `/login`. Candidates → `/jobs` | Middleware    |
+| `/dashboard/listings` | Employers only | Not logged in → `/login`. Candidates → `/jobs` | Middleware    |
+
+**Why are these different?**
+
+* An unauthenticated employer goes to **`/login`** because they need to sign in first.
+* An authenticated candidate is already signed in, but has the wrong role. They should go to **`/jobs`**, not `/login`.
+
+---
+
+## Question 2. The session object design
+
+**What is on the session?**
+
+* id
+* name
+* email
+* role
+
+**What is left off?**
+
+* Password
+* Extra data not needed
+
+**Cost of putting too much on the session**
+
+* Bigger session.
+* Slower requests.
+* More data exposed.
+
+**What breaks if role is not added to the session?**
+
+* `auth()` cannot see the user's role.
+* Route protection will not work.
+
+**Three-step relay**
+
+1. `authorize()` returns the user with the role.
+2. `jwt()` saves the role in the token.
+3. `session()` copies the role to the session.
+
+---
+
+## Question 3. Choosing the state tool for job filters
+
+**Keyword search**
+
+* Use **nuqs**.
+* It stays after refresh.
+* It is shared in the URL.
+
+**Location**
+
+* Use **nuqs**.
+* It stays after refresh.
+* Other people see the same filter from the URL.
+
+**Status (Open / All)**
+
+* Use **nuqs**.
+* It stays after refresh.
+* It is shared in the URL.
+
+**Why not use useState?**
+
+* useState resets after refresh.
+* It is not saved in the URL.
+
+**Does the employer dashboard need these filters?**
+
+* No. They are only for the jobs page.
+
+---
+
+## Question 4. What the nav bar knows
+
+**Why is await auth() in layout.tsx okay?**
+
+* It runs on the server.
+* It is fast and lets the nav show the correct links.
+
+**What if a deep Client Component needs the session?**
+
+* Use useSession().
+
+**Why do both auth() and useSession() exist?**
+
+* auth() is for Server Components.
+* useSession() is for Client Components that need session data.
+
+## =========================================================================================
+# README Updates
+
+## The role redirect decision
+
+After login, users go to different pages based on their role. Employers go to **/dashboard** and candidates go to **/jobs**. The role is not available when `signIn()` is first called, so the role is added in `authorize()`, saved in `jwt()`, copied to the `session()`, and then used for the redirect.
+
+---
+
+## Middleware vs page-level guards
+
+**Middleware:** The employer dashboard is protected in middleware because users should be stopped before the page loads.
+
+**Page:** The login page is handled in the page because it checks if the user is already logged in and sends them to the correct page.
+
+**General rule:** Use middleware for protected routes. Use page-level checks for page-specific redirects.
+
+---
+
+## Why URL state for job filters
+
+I used **nuqs** because the filters are saved in the URL. Users can refresh the page, use the browser back and forward buttons, and share or bookmark the filtered jobs. `useState` and Zustand do not do this by themselves.
+
+---
+
+## Why Zustand without persist for the dashboard view
+
+The dashboard view is only needed while the app is open, so it does not need to be saved. If it needed to stay after closing the browser, I would use **localStorage** or a user preferences API. `localStorage` is simple but only works on one device. A user preferences API works across devices but needs a backend.
+
+---
+
+## The async Server Component / store boundary
+
+`ListingsTable` is a Server Component, so it cannot use `useStore` because Zustand only works in Client Components. The Client Component reads the store and passes the view value as a prop to `ListingsTable`.
