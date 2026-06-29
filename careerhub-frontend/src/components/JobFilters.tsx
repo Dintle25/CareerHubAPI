@@ -15,7 +15,8 @@ export default function JobFilters() {
         q: parseAsString.withDefault(""),
         location: parseAsString.withDefault(""),
         status: parseAsString.withDefault("all"),
-    });
+    },
+{ shallow: false });
 
     // Local state for debounced inputs — these update on every keystroke
     // but only push to the URL after 300ms of inactivity
@@ -98,4 +99,6 @@ export default function JobFilters() {
             )}
         </div>
     );
+
+    
 }

@@ -523,3 +523,142 @@ The dashboard view is only needed while the app is open, so it does not need to 
 ## The async Server Component / store boundary
 
 `ListingsTable` is a Server Component, so it cannot use `useStore` because Zustand only works in Client Components. The Client Component reads the store and passes the view value as a prop to `ListingsTable`.
+
+
+## 3.1--------------------------------------------------------------------------------------------------------
+# Part 1 – Written Decisions
+
+## Question 1 – Draft persistence strategy
+
+**Storage key**
+
+* Use `application-draft-{jobId}`.
+* This keeps each job draft separate.
+* If a candidate applies for two jobs, each draft is saved with a different key.
+* On another device, the draft will not be there because `localStorage` is only on one device.
+
+**When to clear the draft**
+
+* After the application is submitted successfully.
+* When the user chooses to discard the draft.
+* When the user starts a new application for the same job.
+
+**What is safe to store**
+
+* Name
+* Email
+* Phone number
+* Cover letter
+
+**What not to store**
+
+* Files like CVs, because they are large and not good for `localStorage`.
+
+---
+
+## Question 2 – The skeleton loader contract
+
+**Matching dimensions**
+
+* The skeleton should have the same size, spacing, and layout as the real job card.
+
+**How many skeletons?**
+
+* Show the same number of cards that will load.
+* If there are 3 jobs, show 3 skeletons.
+* This keeps the page from changing size.
+
+**Paired component**
+
+* The skeleton and the real card should always match.
+* If one changes and the other does not, the page layout will shift.
+
+---
+
+## Question 3 – AlertDialog vs the alternatives
+
+**Closing a job**
+
+* Use **AlertDialog** because it is an important action.
+
+**Discarding a draft**
+
+* Use **AlertDialog** because the user could lose their work.
+
+**Server Action problem**
+
+* `AlertDialog` is a Client Component, but the action is on the server.
+* `AlertDialogAction` is shown in a portal outside the form, so `type="submit"` will not work.
+* The solution is to call the Server Action from the dialog button instead of trying to submit the form.
+
+---
+
+## Question 4 – Empty state taxonomy
+
+**Why are they different?**
+
+* If there are no jobs, tell the user there are no jobs available.
+* If filters find no jobs, tell the user to change or clear the filters.
+
+**Where is the decision made?**
+
+* It is a server-side decision.
+* The server knows if there are no jobs or if the filters returned no results.
+
+## update=====================================================================================
+## Draft storage key decision
+
+The key is scoped to the job ID: `careerhub-application-${jobId}`.
+
+If we used one key for all jobs, a candidate applying to two jobs at the same time would have their drafts overwrite each other. Opening a second job would erase the first draft.
+
+If the job's requirements change while a draft is saved, it does not matter — the draft stores the candidate's own answers (name, cover letter, etc.), not the job details. The candidate should just review their answers at step 3 before submitting.
+
+---
+
+## Solving AlertDialog with a Server Action
+
+**Chosen approach: `useTransition`.**
+
+The problem: `AlertDialogContent` renders in a separate part of the DOM (a Radix portal outside the page). A `type="submit"` button only works when it is inside a `<form>`. Since `AlertDialogContent` is outside the form, clicking the button does nothing.
+
+Fix: The confirm button calls `handleConfirm()` via `onClick`. This function builds a `FormData` manually and calls the Server Action directly as a function inside `startTransition`. No form submission needed.
+
+`useTransition` was chosen over `useMutation` because the Server Action already handles cache invalidation with `revalidateTag("jobs")`. Converting to a client mutation would break that.
+
+---
+
+## The Back button and validation
+
+The Back button does not validate. This is intentional.
+
+The user is going back to fix something. If we validate on Back, they could get blocked by errors on a step they are trying to correct. For example: a user fills step 1, goes to step 2, then wants to go back to fix a typo. If Back validated, any field that became invalid while they were on step 2 would stop them from going back at all. Validation should only block the user from moving forward, never backward.
+
+---
+
+## Skeleton count justification
+
+Six skeletons are shown while the jobs page loads.
+
+The grid is two columns wide. Six cards fills three rows — enough to look like a real list.
+
+Too few (e.g. 2): the page looks almost empty before data arrives, then lots of cards suddenly appear.
+
+Too many (e.g. 20): the skeleton list looks longer than the real list, which feels like content disappeared.
+
+Six is a neutral middle ground.
+
+---
+
+## Empty state taxonomy
+
+There are two empty states and they are handled server-side in `src/app/jobs/page.tsx`.
+
+1. `allJobs` — the full unfiltered result from the API.
+2. `jobs` — `allJobs` after applying the filters.
+
+If `jobs.length === 0`:
+- `allJobs.length === 0` → database is empty → show "No jobs are currently listed." No button, nothing the user can do.
+- `allJobs.length > 0` → filters removed everything → show "No jobs match your search." with a Clear button.
+
+This is done server-side because both arrays are already available during the server render. No extra fetch or client-side check is needed.

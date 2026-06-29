@@ -1,51 +1,43 @@
-import React from "react";
+// Skeleton card that matches JobLinkCard's dimensions and structure.
+// Same padding (p-5), same rounded corners, same border — so the layout
+// does not shift when real cards replace the skeletons.
+// Each placeholder bar approximates the text line it replaces.
 
-/**
- * Skeleton placeholder mirroring JobCard's visual structure:
- * heading (title), detail line (company/location), badge,
- * salary line, posted-date line, and footer (applicant count).
- * No real text — every region is a pulsing block.
- */
-export const JobCardSkeleton: React.FC = () => {
+export function JobCardSkeleton() {
   return (
-    <div
-      className={[
-        "rounded-xl border p-5",
-        "bg-white dark:bg-gray-800",
-        "border-gray-200 dark:border-gray-700",
-      ].join(" ")}
-    >
-      {/* heading area: job title */}
+    <div className="block rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
+
+      {/* Title — tall bar matching text-xl font-bold */}
       <div className="h-6 w-3/4 animate-pulse rounded bg-gray-200 dark:bg-gray-700" />
 
-      {/* company & location line */}
-      <div className="mt-2 h-4 w-1/2 animate-pulse rounded bg-gray-200 dark:bg-gray-700" />
+      {/* Company · location — shorter bar below title */}
+      <div className="mt-1.5 h-4 w-1/2 animate-pulse rounded bg-gray-200 dark:bg-gray-700" />
 
-      {/* badge area: employment type / status */}
-      <div className="mt-3 h-5 w-20 animate-pulse rounded-full bg-gray-200 dark:bg-gray-700" />
+      {/* Status badge — pill shape */}
+      <div className="mt-2 h-5 w-24 animate-pulse rounded-full bg-gray-200 dark:bg-gray-700" />
 
-      {/* salary line */}
-      <div className="mt-3 h-4 w-2/5 animate-pulse rounded bg-gray-200 dark:bg-gray-700" />
+      {/* Salary range — medium width */}
+      <div className="mt-2 h-4 w-2/5 animate-pulse rounded bg-gray-200 dark:bg-gray-700" />
 
-      {/* posted-date line */}
-      <div className="mt-2 h-3 w-1/4 animate-pulse rounded bg-gray-200 dark:bg-gray-700" />
+      {/* Relative date — narrow */}
+      <div className="mt-1.5 h-3 w-1/4 animate-pulse rounded bg-gray-200 dark:bg-gray-700" />
 
-      {/* footer: applicant count */}
-      <div className="mt-2 h-3 w-1/3 animate-pulse rounded bg-gray-200 dark:bg-gray-700" />
+      {/* Applicant count — narrow */}
+      <div className="mt-1 h-3 w-1/5 animate-pulse rounded bg-gray-200 dark:bg-gray-700" />
     </div>
   );
-};
+}
 
-/**
- * Renders six JobCardSkeletons in the same grid JobList uses,
- * so layout doesn't shift once real data replaces the skeletons.
- */
-export const JobListSkeleton: React.FC = () => {
+// 6 skeleton cards — one grid of skeletons for the /jobs loading state.
+// 6 is chosen because it fills two rows of the sm:grid-cols-2 layout without
+// implying a specific total count. Too few (e.g. 2) makes the page feel sparse;
+// too many (e.g. 20) creates false expectations about how many jobs exist.
+export function JobsGridSkeleton() {
   return (
-    <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-      {Array.from({ length: 6 }).map((_, index) => (
-        <JobCardSkeleton key={index} />
+    <div className="grid gap-4 sm:grid-cols-2">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <JobCardSkeleton key={i} />
       ))}
     </div>
   );
-};
+}
