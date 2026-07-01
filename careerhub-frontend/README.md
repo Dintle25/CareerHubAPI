@@ -741,3 +741,106 @@ Better: **shows three status messages to the user**
 ## CI status badge
 [![CI](https://github.com/Dintle25/CareerHubAPI/actions/workflows/test.yml/badge.svg)](https://github.com/Dintle25/CareerHubAPI/actions/workflows/test.yml)
 
+## 3.3------------------------------------------------------------------------------------------------------------
+
+## Question 1 — Image Audit
+
+CareerHub currently has no images. There are no company logos, hero banners, employer profile pictures, or illustrations anywhere in the app. All job cards show text only.
+
+Since there are no images, there is no candidate for `next/image` and no image to assign the `priority` prop to.
+
+**Future note:** If company logos are added from the API, the first visible logo on the `/jobs` page would be the highest-priority candidate for the `priority` prop. It would likely be the LCP element — the largest thing painted on screen on first load.
+
+---
+
+## Question 2 — ApplicationWizard Loading Decision
+
+### a. Does `ssr: false` make sense?
+
+Yes. ApplicationWizard uses `localStorage`, `useSession`, and React Hook Form — all browser-only APIs. Setting `ssr: true` would crash or cause a hydration mismatch because the server cannot access `localStorage` or read the session cookie at render time. `ssr: false` skips server rendering and loads the wizard in the browser only.
+
+### b. Does loading the wizard JavaScript eagerly harm a signed-out user?
+
+Yes, slightly. A signed-out user only sees job details — they cannot use the wizard at all. Loading the wizard's JavaScript bundle (which includes Zod, React Hook Form, TanStack Query, and AlertDialog) wastes bandwidth for that user. It increases **Time to Interactive** and **Total Blocking Time**. Dynamic import delays that download until the wizard is actually needed.
+
+### c. Why are the Assignment 3.2 tests unaffected by dynamic import?
+
+Tests import `ApplicationWizard` directly from its source file using a normal `import` statement. Dynamic imports are a Next.js runtime feature — Vitest ignores them and loads the module directly from disk. Adding `dynamic(() => import(...))` in the page component has no effect on the test file which still does:
+
+```ts
+import ApplicationWizard from "@/components/ApplicationWizard";
+```
+
+---
+
+## Question 3 — Static vs Dynamic Metadata
+
+### Home page (`/`)
+**Static export.** The content never changes and does not depend on API data.
+
+```ts
+export const metadata = {
+  title: "CareerHub — Find Your Next Role",
+  description: "Browse open roles and apply directly on CareerHub.",
+};
+```
+
+### Jobs listing page (`/jobs`)
+**Static export.** The page title and description do not need to reflect the current filters or job count. A fixed description is correct here.
+
+```ts
+export const metadata = {
+  title: "Job Listings — CareerHub",
+  description: "Browse all open roles on CareerHub.",
+};
+```
+
+### Job detail page (`/jobs/[id]`)
+**`generateMetadata`.** The title and description must include the specific job title and company name, which come from the API. A static export cannot know the job title at build time.
+
+```ts
+export async function generateMetadata({ params }) {
+  const job = await getJob(params.id);
+  return {
+    title: `${job.title} at ${job.company} — CareerHub`,
+    description: job.description,
+  };
+}
+```
+
+### Will `generateMetadata` and the page cause two network requests?
+
+No. Next.js deduplicates `fetch` calls that share the same URL and cache options within the same request. Both `generateMetadata` and the page component call `getJob(id)`, which fetches the same URL. Next.js serves the second call from its internal per-request cache — no extra network call is made.
+
+**The condition that must be true:** both fetches must use identical URL and cache options. If one uses `cache: "no-store"` and the other uses `next: { tags: ["jobs"] }`, deduplication does not apply.
+
+---
+
+## Question 4 — Lighthouse Scores
+
+> Run Lighthouse in Chrome DevTools with these settings:
+> Mode: Navigation | Device: Desktop | Categories: Performance, SEO, Best Practices
+
+| Page                     | Performance | LCP | LCP Rating | CLS  | CLS Rating | INP | INP Rating | SEO |
+|--------------------------|-------------|-----|------------|------|------------|-----|------------|-----|
+| Home (`/`)               |    72       | 0.7 |   good     | 0    |  good      | N/A |            | 100 |
+| Job detail (`/jobs/[id]`)|    67       | 0.9 |   good     |0.083 |  good      | N/A |            |  90 |
+
+**SEO flags raised by Lighthouse:**
+- 
+
+> Fill in the numbers above before writing any code for Parts 2–4. The before/after comparison is a required deliverable.
+
+## Image Optimisation
+
+- **hero.svg (home page)** — `next/image` with `priority`. Targets LCP — this is the largest element on first paint so preloading it reduces the time the browser spends waiting for it.
+- **company-logo.svg (job cards)** — `next/image` without `priority`. Targets CLS — explicit `width` and `height` props reserve space in the layout before the image loads, preventing content from shifting when images arrive.
+
+## Bundle Analysis
+
+The ApplicationWizard dependencies (Zod v4, React Hook Form) are isolated in 
+chunk `804.caa6af2b8dabe348.js` (57 KB parsed), separate from the main bundle. 
+This chunk only downloads when a candidate navigates to a job detail page.
+
+![Bundle analyzer screenshot showing ApplicationWizard chunk](./screenshots/bundle-chunk.png)
+

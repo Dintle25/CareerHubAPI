@@ -14,15 +14,28 @@ import { Toaster } from "sonner";
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
 
+// Title template — page titles render as "Page Title | CareerHub"
+// The default is shown when a page does not set its own title
 export const metadata: Metadata = {
-  title: "CareerHub",
-  description: "Find your next role",
+  title: {
+    template: "%s | CareerHub",
+    default: "CareerHub — Find Your Next Role",
+  },
+  description: "CareerHub connects job seekers with great opportunities across South Africa.",
+  // Base URL for resolving Open Graph image URLs
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"
+  ),
+  openGraph: {
+    siteName: "CareerHub",
+    type: "website",
+  },
 };
 
 export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  //shows the right nav links per role
+  // Shows the right nav links per role
   const session = await auth();
   const role = session?.user?.role;
   const username = session?.user?.name;

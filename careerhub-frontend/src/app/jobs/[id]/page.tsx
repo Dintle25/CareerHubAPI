@@ -1,13 +1,15 @@
 // Job detail page at /jobs/[id].
 // Server Component — fetches job and session in parallel.
-// Passes jobId and jobTitle to ApplicationWizard (Client Component).
+// ApplicationWizard is dynamically imported with ssr: false because it uses
+// localStorage, useSession, and browser-only APIs.
 
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { JobListing } from "@/types";
 import JobStatusBadge from "@/components/JobStatusBadge";
 import { auth } from "@/auth";
-import ApplicationWizard from "@/components/ApplicationWizard";
+import type { Metadata } from "next";
+import ApplicationWizardClient from "@/components/ApplicationWizardClient";
 
 async function getJob(id: string): Promise<JobListing> {
   const res = await fetch(
@@ -21,6 +23,30 @@ async function getJob(id: string): Promise<JobListing> {
   return res.json();
 }
 
+// generateMetadata reuses getJob() — Next.js deduplicates the fetch
+// so only one network request is made even though both call getJob().
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+
+  try {
+    const job = await getJob(id);
+    const title = job.title;
+    const description = `Apply for ${job.title} at ${job.company} in ${job.location}.`;
+
+    return {
+      title,
+      description,
+      openGraph: { title, description, type: "website" },
+    };
+  } catch {
+    return { title: "Job Not Found" };
+  }
+}
+
 export default async function JobDetailPage({
   params,
 }: {
@@ -28,7 +54,6 @@ export default async function JobDetailPage({
 }) {
   const { id } = await params;
 
-  // Fetch job and session at the same time
   const [job, session] = await Promise.all([getJob(id), auth()]);
 
   const isClosed = !job.isActive;
@@ -60,7 +85,6 @@ export default async function JobDetailPage({
       {/* Application section */}
       <div className="mt-8">
         {isClosed ? (
-          // Job is closed — no one can apply
           <div className="rounded-xl border border-yellow-200 bg-yellow-50 p-6 text-center dark:border-yellow-800 dark:bg-yellow-950">
             <h2 className="text-lg font-semibold text-yellow-800 dark:text-yellow-200">
               Applications Closed
@@ -71,16 +95,14 @@ export default async function JobDetailPage({
             </p>
           </div>
         ) : role === "employer" ? (
-          // Employer — cannot apply
           <div className="rounded-xl border border-gray-200 bg-gray-50 p-6 text-center dark:border-gray-700 dark:bg-gray-800">
             <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
               Employers cannot apply for jobs.
             </p>
           </div>
         ) : (
-          // Candidate or signed out — show wizard
-          // The wizard handles the sign-in check internally at step 1 → step 2
-          <ApplicationWizard jobId={job.id} jobTitle={job.title} />
+          // Dynamically loaded — only downloads when a candidate reaches this page
+          <ApplicationWizardClient jobId={job.id} jobTitle={job.title} />
         )}
       </div>
     </main>
