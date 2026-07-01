@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useAuth } from "@/context/AuthContext";
 
 export function AuthNav() {
   const { user, logout, isAuthenticated } = useAuth();
@@ -40,3 +39,7 @@ export function AuthNav() {
     </div>
   );
 }
+function useAuth(): { user: any; logout: any; isAuthenticated: any; } {
+  throw new Error("Function not implemented.");
+}
+

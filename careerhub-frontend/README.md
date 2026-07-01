@@ -737,3 +737,7 @@ Better: **saves the draft when the user changes steps**
 
 **e)** Implementation  
 Better: **shows three status messages to the user**
+
+## CI status badge
+[![CI](https://github.com/Dintle25/CareerHubAPI/actions/workflows/test.yml/badge.svg)](https://github.com/Dintle25/CareerHubAPI/actions/workflows/test.yml)
+
