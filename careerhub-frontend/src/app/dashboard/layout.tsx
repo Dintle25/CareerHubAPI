@@ -15,7 +15,7 @@ export default function DashboardLayout({
     // min-h-screen keeps the sidebar full height even on short pages.
     <div className="flex min-h-screen">
 
-      {/* ── Sidebar ──────────────────────────────────────────────────────── */}
+      {/*  Sidebar ------------------------------------------------------------------------------------------- */}
       <aside className="w-56 shrink-0 border-r border-gray-200 bg-gray-50 px-4 py-8 dark:border-gray-700 dark:bg-gray-900">
 
         {/* Section heading */}
@@ -43,7 +43,7 @@ export default function DashboardLayout({
         </nav>
       </aside>
 
-      {/* ── Content area ─────────────────────────────────────────────────── */}
+      {/*  Content area ----------------------------------------------------------------------------- */}
       {/* children is whatever page is currently active inside /dashboard */}
       <div className="flex-1 overflow-auto px-8 py-8">
         {children}

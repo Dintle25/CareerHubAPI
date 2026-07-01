@@ -662,3 +662,78 @@ If `jobs.length === 0`:
 - `allJobs.length > 0` → filters removed everything → show "No jobs match your search." with a Clear button.
 
 This is done server-side because both arrays are already available during the server render. No extra fetch or client-side check is needed.
+
+## 3.2---------------------------------------------------------------------------------------------------------
+# Assignment 3.2 – Written Decisions
+
+## Question 1 – What is worth testing?
+
+### Category A – High-value behaviours to test
+
+- User can move to the next step after entering valid data.
+  - This is important because the user cannot finish the application if it breaks.
+
+- Draft is saved and restored from localStorage.
+  - This is important because the user does not lose their work.
+
+- Application is submitted successfully.
+  - This is important because the user must be able to send their application.
+
+### Category B – Things NOT worth testing
+
+- Exact CSS classes or Tailwind colours.
+  - They give little value. Small design changes could break the test even though the app still works.
+
+- Number of div elements.
+  - This does not test user behaviour. Changing the layout would break the test without affecting users.
+
+### Category C – Draft persistence
+
+I would use the real jsdom localStorage because it tests that saving and loading really work.
+
+A mock only checks that localStorage methods were called, but it does not test the real storage behaviour.
+
+---
+
+## Question 2 – Mocking the session
+
+### Approach 1 – Mock useSession
+
+- Replaces `useSession()` with fake data.
+- Everything else stays real.
+
+### Approach 2 – SessionProvider
+
+- Uses the real SessionProvider.
+- Only the session data is fake.
+
+I would use Approach 1 because it is simple and only tests the auth gate.
+
+---
+
+## Question 3 – MSW scope
+
+| Method | URL | Happy-path response |
+|--------|-----|---------------------|
+| GET | `/api/jobs/:id` | Return the job details. |
+| POST | `/api/applications` | Return success (201). |
+| GET | Refetched queries after submit | Return updated data. |
+
+MSW cannot test local component state, UI changes that do not make network requests, or browser features like localStorage.
+
+---
+
+## Question 4 – Test naming
+
+**a)** Implementation  
+Better: **moves to the Schedule step after valid Step 1 data**
+
+**b)** Behaviour
+
+**c)** Implementation  
+Better: **saves the draft when the user changes steps**
+
+**d)** Behaviour
+
+**e)** Implementation  
+Better: **shows three status messages to the user**
