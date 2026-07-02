@@ -842,5 +842,6 @@ The ApplicationWizard dependencies (Zod v4, React Hook Form) are isolated in
 chunk `804.caa6af2b8dabe348.js` (57 KB parsed), separate from the main bundle. 
 This chunk only downloads when a candidate navigates to a job detail page.
 
-![Bundle analyzer screenshot showing ApplicationWizard chunk](./screenshots/bundle-chunk.png)
+<img width="426" height="493" alt="Screenshot 2026-07-02 002844" src="https://github.com/user-attachments/assets/fc62a2f4-73ba-4497-9d77-d86c384245e8" />
+
 
