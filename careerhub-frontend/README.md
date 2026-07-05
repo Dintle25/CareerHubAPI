@@ -974,14 +974,14 @@ docker-compose up -d
 
 # 3. Set up the backend
 cd API
-cp .env.example .env          # fill in values (see below)
+cp .env.example .env  set to `http://localhost:5076`     
 dotnet restore
 dotnet ef database update
 dotnet run
 
 # 4. In a new terminal, set up the frontend
 cd careerhub-frontend
-cp .env.example .env.local    # fill in values (see below)
+cp .env.example .env.local   set to `http://localhost:5076`
 npm install
 npm run dev
 ```
@@ -1000,10 +1000,55 @@ Open `http://localhost:3000` in your browser.
 | **JWT secret**                 | `appsettings.Development.json` — set `Jwt:Key`                  |
 | **Database seed data**         | Run `dotnet ef database update` — migrations include seed data  |
 
-### Mock users (no sign-up required for testing)
-| Username  | Password    | Role      |
-|-----------|-------------|-----------|
-| employer1 | password123 | employer  |
-| employer2 | password123 | employer  |
-| alice     | password123 | candidate |
-| bob       | password123 | candidate |
+
+## Part 4 — End-to-End Demo Screenshots
+
+### Employer Journey
+
+**Milestone 1 — Registration**
+![Employer Registration](./screenshots/Screenshot%20(179).png)
+
+**Milestone 2 — Create a listing**
+![Create Listing](./screenshots/Screenshot%20(180).png)
+
+**Milestone 3 — Ownership controls**
+![Ownership Controls](./screenshots/Screenshot%20(181).png)
+
+**Milestone 4 — view job details**
+![Close Listing](./screenshots/Screenshot%20(182).png)
+
+**Milestone 5 — close listong/job**
+![View Applicants](./screenshots/Screenshot%20(183).png)
+
+**Milestone 6 — closed**
+![Update Status](./screenshots/Screenshot%20(184).png)
+
+
+**Milestone 7 — listings**
+![JobSeeker Registration](./screenshots/Screenshot%20(185).png)
+
+**Milestone 8 — applicants**
+![Browse Jobs](./screenshots/Screenshot%20(186).png)
+
+### JobSeeker Journey
+
+**Milestone 1 — register**
+![Job Detail](./screenshots/Screenshot%20(187).png)
+
+**Milestone 2 — jobs**
+![Apply](./screenshots/Screenshot%20(188).png)
+
+**Milestone 3 — filter by search**
+![Duplicate Blocked](./screenshots/Screenshot%20(189).png)
+
+**Milestone 4 — apply**
+![Closed Listing](./screenshots/Screenshot%20(190).png)
+
+**Milestone 5 — submit application**
+![Closed Listing](./screenshots/Screenshot%20(191).png)
+
+**Milestone 6 — duplicate application**
+![Closed Listing](./screenshots/Screenshot%20(192).png)
+
+**Milestone 7 — Closed job**
+![Closed Listing](./screenshots/Screenshot%20(193).png)

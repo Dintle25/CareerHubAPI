@@ -1,10 +1,5 @@
 "use client";
 
-// Three-step application wizard with draft auto-save and discard draft AlertDialog.
-// Step 1: Your Details (name, email, phone)
-// Step 2: Your Application (cover letter, LinkedIn, how did you hear)
-// Step 3: Review & Submit (read-only summary)
-
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -28,11 +23,9 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
-//  Zod Schema 
-
 const wizardSchema = z
   .object({
-    fullName: z.string().min(2, "Full name must be at least 2 characters").max(100, "Full name must be at most 100 characters"),
+    fullName: z.string().min(2, "Full name must be at least 2 characters").max(100),
     email: z.string().email("Please enter a valid email address"),
     phone: z.string().optional(),
     coverLetter: z.string().optional(),
@@ -47,12 +40,11 @@ const wizardSchema = z
         data.linkedInUrl.startsWith("https://www.linkedin.com/")
       );
     },
-    { message: "LinkedIn URL must start with https://linkedin.com/ or https://www.linkedin.com/", path: ["linkedInUrl"] }
+    { message: "LinkedIn URL must start with https://linkedin.com/", path: ["linkedInUrl"] }
   );
 
 type WizardFormData = z.infer<typeof wizardSchema>;
 
-// Fields per step — used to validate each step and to find which step owns a field
 const STEP_FIELDS: Record<number, (keyof WizardFormData)[]> = {
   1: ["fullName", "email", "phone"],
   2: ["coverLetter", "linkedInUrl", "hearAboutRole"],
@@ -83,15 +75,13 @@ export default function ApplicationWizard({ jobId, jobTitle }: ApplicationWizard
   const [hasDraft, setHasDraft] = useState(false);
   const [showSignInMessage, setShowSignInMessage] = useState(false);
 
-  const form = useForm<WizardFormData>({
+  const { register, trigger, watch, reset, setError, getValues, formState: { errors } } = useForm<WizardFormData>({
     resolver: zodResolver(wizardSchema),
     defaultValues: EMPTY_DEFAULTS,
     mode: "onTouched",
   });
 
-  const { register, handleSubmit, trigger, watch, reset, setError, formState: { errors } } = form;
-
-  // On mount — restore draft from localStorage if one exists
+  // Restore draft on mount
   useEffect(() => {
     try {
       const saved = localStorage.getItem(storageKey);
@@ -101,20 +91,16 @@ export default function ApplicationWizard({ jobId, jobTitle }: ApplicationWizard
         setShowDraftBanner(true);
         setHasDraft(true);
       }
-    } catch {
-      // Ignore corrupted drafts
-    }
+    } catch { /* ignore */ }
   }, [storageKey, reset]);
 
-  // Auto-save on every field change — subscription with cleanup to avoid memory leaks
+  // Auto-save on every change
   useEffect(() => {
     const subscription = watch((values) => {
       try {
         localStorage.setItem(storageKey, JSON.stringify(values));
         setHasDraft(true);
-      } catch {
-        // Ignore storage errors
-      }
+      } catch { /* ignore */ }
     });
     return () => subscription.unsubscribe();
   }, [watch, storageKey]);
@@ -131,39 +117,21 @@ export default function ApplicationWizard({ jobId, jobTitle }: ApplicationWizard
       setStep(1);
     },
     onError: (error) => {
-      // Handle 422 validation errors from the API
-      // Map field errors back to the form and navigate to the step that owns the first invalid field
       if (error instanceof ApiError && error.isValidation && error.fields) {
-        // Set each field error inline so the user sees it next to the input
         const fieldNames = Object.keys(error.fields) as (keyof WizardFormData)[];
-
         fieldNames.forEach((fieldName) => {
           const messages = error.fields![fieldName];
-          if (messages?.length) {
-            setError(fieldName, { type: "server", message: messages[0] });
-          }
+          if (messages?.length) setError(fieldName, { type: "server", message: messages[0] });
         });
-
-        // Navigate back to the step that owns the first invalid field
-        const firstInvalidField = fieldNames[0];
-        for (const [stepNum, fields] of Object.entries(STEP_FIELDS)) {
-          if (fields.includes(firstInvalidField)) {
-            setStep(Number(stepNum));
-            break;
-          }
-        }
-
-        // Show a toast guiding the user to review their application
         toast.error("Please review your application — some fields need attention.");
         return;
       }
-
-      // Generic error — show the message from ApiError or fall back to a default
       toast.error(error instanceof ApiError ? error.message : "Something went wrong. Please try again.");
     },
   });
 
-  async function handleNext() {
+  // Step navigation — only moves forward, never submits
+  async function goNext() {
     if (step === 1) {
       const valid = await trigger(STEP_FIELDS[1]);
       if (!valid) return;
@@ -178,13 +146,16 @@ export default function ApplicationWizard({ jobId, jobTitle }: ApplicationWizard
       return;
     }
 
-    const valid = await trigger(STEP_FIELDS[step]);
-    if (!valid) return;
-    setStep((s) => s + 1);
+    if (step === 2) {
+      const valid = await trigger(STEP_FIELDS[2]);
+      if (!valid) return;
+      setStep(3);
+      return;
+    }
   }
 
-  function handleBack() {
-    setStep((s) => s - 1);
+  function goBack() {
+    setStep((s) => Math.max(1, s - 1));
   }
 
   function handleDiscardDraft() {
@@ -195,7 +166,9 @@ export default function ApplicationWizard({ jobId, jobTitle }: ApplicationWizard
     setStep(1);
   }
 
-  const onSubmit = handleSubmit(async (data) => {
+  // Submit — only called from the explicit submit button on step 3
+  async function handleSubmit() {
+    const data = getValues();
     await mutation.mutateAsync({
       jobId,
       fullName: data.fullName,
@@ -207,7 +180,7 @@ export default function ApplicationWizard({ jobId, jobTitle }: ApplicationWizard
       availableImmediately: true,
       noticePeriodWeeks: 0,
     });
-  });
+  }
 
   const values = watch();
 
@@ -229,8 +202,7 @@ export default function ApplicationWizard({ jobId, jobTitle }: ApplicationWizard
               <AlertDialogHeader>
                 <AlertDialogTitle>Discard your draft?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Your saved application progress will be permanently deleted.
-                  This cannot be undone.
+                  Your saved application progress will be permanently deleted. This cannot be undone.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
@@ -254,10 +226,7 @@ export default function ApplicationWizard({ jobId, jobTitle }: ApplicationWizard
             )}>
               {step > n ? "✓" : n}
             </div>
-            <span className={cn(
-              "text-xs font-medium",
-              step === n ? "text-blue-600 dark:text-blue-400" : "text-gray-400 dark:text-gray-500"
-            )}>
+            <span className={cn("text-xs font-medium", step === n ? "text-blue-600 dark:text-blue-400" : "text-gray-400 dark:text-gray-500")}>
               {n === 1 ? "Your Details" : n === 2 ? "Your Application" : "Review & Submit"}
             </span>
             {n < 3 && <div className="h-px w-6 bg-gray-200 dark:bg-gray-700" />}
@@ -265,6 +234,7 @@ export default function ApplicationWizard({ jobId, jobTitle }: ApplicationWizard
         ))}
       </div>
 
+      {/* Draft banner */}
       {showDraftBanner && (
         <div className="mb-4 flex items-center justify-between rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 dark:border-blue-800 dark:bg-blue-950">
           <p className="text-sm text-blue-700 dark:text-blue-300">
@@ -276,177 +246,135 @@ export default function ApplicationWizard({ jobId, jobTitle }: ApplicationWizard
         </div>
       )}
 
-      <form onSubmit={onSubmit} noValidate>
-
-        {step === 1 && (
-          <div className="space-y-4">
-            <div>
-              <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Full Name <span className="text-red-500">*</span>
-              </label>
-              <input
-                id="fullName"
-                type="text"
-                {...register("fullName")}
-                className={cn(
-                  "mt-1 w-full rounded-md border px-3 py-2 text-sm shadow-sm outline-none",
-                  "bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-100",
-                  "focus:ring-2 focus:ring-blue-500",
-                  errors.fullName ? "border-red-500" : "border-gray-300 dark:border-gray-600"
-                )}
-              />
-              {errors.fullName && <p className="mt-1 text-xs text-red-600">{errors.fullName.message}</p>}
-            </div>
-
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Email Address <span className="text-red-500">*</span>
-              </label>
-              <input
-                id="email"
-                type="email"
-                {...register("email")}
-                className={cn(
-                  "mt-1 w-full rounded-md border px-3 py-2 text-sm shadow-sm outline-none",
-                  "bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-100",
-                  "focus:ring-2 focus:ring-blue-500",
-                  errors.email ? "border-red-500" : "border-gray-300 dark:border-gray-600"
-                )}
-              />
-              {errors.email && <p className="mt-1 text-xs text-red-600">{errors.email.message}</p>}
-            </div>
-
-            <div>
-              <label htmlFor="phone" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Phone Number <span className="text-gray-400">(optional)</span>
-              </label>
-              <input
-                id="phone"
-                type="tel"
-                {...register("phone")}
-                className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
-              />
-            </div>
-
-            {showSignInMessage && (
-              <div className="rounded-lg border border-yellow-200 bg-yellow-50 px-4 py-3 dark:border-yellow-800 dark:bg-yellow-950">
-                <p className="text-sm text-yellow-700 dark:text-yellow-300">
-                  You need to be signed in as a candidate to apply.{" "}
-                  <Link href="/login" className="font-semibold underline">Sign in here</Link>.
-                </p>
-              </div>
-            )}
+      {/* Step 1 — Your Details */}
+      {step === 1 && (
+        <div className="space-y-4">
+          <div>
+            <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Full Name <span className="text-red-500">*</span>
+            </label>
+            <input id="fullName" type="text" {...register("fullName")}
+              className={cn("mt-1 w-full rounded-md border px-3 py-2 text-sm shadow-sm outline-none bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500",
+                errors.fullName ? "border-red-500" : "border-gray-300 dark:border-gray-600")} />
+            {errors.fullName && <p className="mt-1 text-xs text-red-600">{errors.fullName.message}</p>}
           </div>
-        )}
 
-        {step === 2 && (
-          <div className="space-y-4">
-            <div>
-              <label htmlFor="coverLetter" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Cover Letter <span className="text-gray-400">(optional)</span>
-              </label>
-              <textarea
-                id="coverLetter"
-                rows={6}
-                {...register("coverLetter")}
-                placeholder="Tell us why you're a strong fit for this role…"
-                className={cn(
-                  "mt-1 w-full rounded-md border px-3 py-2 text-sm shadow-sm outline-none resize-y",
-                  "bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-100",
-                  "focus:ring-2 focus:ring-blue-500",
-                  errors.coverLetter ? "border-red-500" : "border-gray-300 dark:border-gray-600"
-                )}
-              />
-              {/* Shows server-side validation error from 422 response */}
-              {errors.coverLetter && <p className="mt-1 text-xs text-red-600">{errors.coverLetter.message}</p>}
-            </div>
-
-            <div>
-              <label htmlFor="linkedInUrl" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                LinkedIn Profile URL <span className="text-gray-400">(optional)</span>
-              </label>
-              <input
-                id="linkedInUrl"
-                type="url"
-                {...register("linkedInUrl")}
-                placeholder="https://linkedin.com/in/yourprofile"
-                className={cn(
-                  "mt-1 w-full rounded-md border px-3 py-2 text-sm shadow-sm outline-none",
-                  "bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-100",
-                  "focus:ring-2 focus:ring-blue-500",
-                  errors.linkedInUrl ? "border-red-500" : "border-gray-300 dark:border-gray-600"
-                )}
-              />
-              {errors.linkedInUrl && <p className="mt-1 text-xs text-red-600">{errors.linkedInUrl.message}</p>}
-            </div>
-
-            <div>
-              <label htmlFor="hearAboutRole" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                How did you hear about this role? <span className="text-red-500">*</span>
-              </label>
-              <select
-                id="hearAboutRole"
-                {...register("hearAboutRole")}
-                className={cn(
-                  "mt-1 w-full rounded-md border px-3 py-2 text-sm shadow-sm outline-none",
-                  "bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-100",
-                  "focus:ring-2 focus:ring-blue-500",
-                  errors.hearAboutRole ? "border-red-500" : "border-gray-300 dark:border-gray-600"
-                )}
-              >
-                <option value="">Select an option…</option>
-                <option value="linkedin">LinkedIn</option>
-                <option value="careerhub">CareerHub</option>
-                <option value="referral">Employee Referral</option>
-                <option value="jobboard">Job Board</option>
-                <option value="other">Other</option>
-              </select>
-              {errors.hearAboutRole && <p className="mt-1 text-xs text-red-600">{errors.hearAboutRole.message}</p>}
-            </div>
+          <div>
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Email Address <span className="text-red-500">*</span>
+            </label>
+            <input id="email" type="email" {...register("email")}
+              className={cn("mt-1 w-full rounded-md border px-3 py-2 text-sm shadow-sm outline-none bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500",
+                errors.email ? "border-red-500" : "border-gray-300 dark:border-gray-600")} />
+            {errors.email && <p className="mt-1 text-xs text-red-600">{errors.email.message}</p>}
           </div>
-        )}
 
-        {step === 3 && (
-          <div className="rounded-xl border border-gray-200 bg-gray-50 p-5 dark:border-gray-700 dark:bg-gray-800">
-            <h3 className="mb-4 text-sm font-semibold uppercase tracking-widest text-gray-500 dark:text-gray-400">Your Details</h3>
-            <dl className="space-y-2 text-sm">
-              <ReviewRow label="Full Name" value={values.fullName} />
-              <ReviewRow label="Email" value={values.email} />
-              <ReviewRow label="Phone" value={values.phone} />
-            </dl>
-            <h3 className="mb-4 mt-6 text-sm font-semibold uppercase tracking-widest text-gray-500 dark:text-gray-400">Your Application</h3>
-            <dl className="space-y-2 text-sm">
-              <ReviewRow label="Cover Letter" value={values.coverLetter} />
-              <ReviewRow label="LinkedIn URL" value={values.linkedInUrl} />
-              <ReviewRow label="How did you hear about this role?" value={values.hearAboutRole} />
-            </dl>
+          <div>
+            <label htmlFor="phone" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Phone Number <span className="text-gray-400">(optional)</span>
+            </label>
+            <input id="phone" type="tel" {...register("phone")}
+              className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100" />
           </div>
-        )}
 
-        <div className="mt-6 flex justify-between">
-          {step > 1 ? (
-            <button type="button" onClick={handleBack} className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800">
-              Back
-            </button>
-          ) : (
-            <div />
-          )}
-
-          {step < 3 ? (
-            <button type="button" onClick={handleNext} className="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700">
-              Next
-            </button>
-          ) : (
-            <button
-              type="submit"
-              disabled={mutation.isPending}
-              className={cn("rounded-md px-4 py-2 text-sm font-semibold text-white", mutation.isPending ? "cursor-not-allowed bg-gray-400" : "bg-blue-600 hover:bg-blue-700")}
-            >
-              {mutation.isPending ? "Submitting…" : "Submit Application"}
-            </button>
+          {showSignInMessage && (
+            <div className="rounded-lg border border-yellow-200 bg-yellow-50 px-4 py-3 dark:border-yellow-800 dark:bg-yellow-950">
+              <p className="text-sm text-yellow-700 dark:text-yellow-300">
+                You need to be signed in as a candidate to apply.{" "}
+                <Link href="/login" className="font-semibold underline">Sign in here</Link>.
+              </p>
+            </div>
           )}
         </div>
-      </form>
+      )}
+
+      {/* Step 2 — Your Application */}
+      {step === 2 && (
+        <div className="space-y-4">
+          <div>
+            <label htmlFor="coverLetter" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Cover Letter <span className="text-gray-400">(optional)</span>
+            </label>
+            <textarea id="coverLetter" rows={6} {...register("coverLetter")}
+              placeholder="Tell us why you're a strong fit for this role…"
+              className={cn("mt-1 w-full rounded-md border px-3 py-2 text-sm shadow-sm outline-none resize-y bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500",
+                errors.coverLetter ? "border-red-500" : "border-gray-300 dark:border-gray-600")} />
+            {errors.coverLetter && <p className="mt-1 text-xs text-red-600">{errors.coverLetter.message}</p>}
+          </div>
+
+          <div>
+            <label htmlFor="linkedInUrl" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              LinkedIn Profile URL <span className="text-gray-400">(optional)</span>
+            </label>
+            <input id="linkedInUrl" type="url" {...register("linkedInUrl")} placeholder="https://linkedin.com/in/yourprofile"
+              className={cn("mt-1 w-full rounded-md border px-3 py-2 text-sm shadow-sm outline-none bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500",
+                errors.linkedInUrl ? "border-red-500" : "border-gray-300 dark:border-gray-600")} />
+            {errors.linkedInUrl && <p className="mt-1 text-xs text-red-600">{errors.linkedInUrl.message}</p>}
+          </div>
+
+          <div>
+            <label htmlFor="hearAboutRole" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              How did you hear about this role? <span className="text-red-500">*</span>
+            </label>
+            <select id="hearAboutRole" {...register("hearAboutRole")}
+              className={cn("mt-1 w-full rounded-md border px-3 py-2 text-sm shadow-sm outline-none bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500",
+                errors.hearAboutRole ? "border-red-500" : "border-gray-300 dark:border-gray-600")}>
+              <option value="">Select an option…</option>
+              <option value="linkedin">LinkedIn</option>
+              <option value="careerhub">CareerHub</option>
+              <option value="referral">Employee Referral</option>
+              <option value="jobboard">Job Board</option>
+              <option value="other">Other</option>
+            </select>
+            {errors.hearAboutRole && <p className="mt-1 text-xs text-red-600">{errors.hearAboutRole.message}</p>}
+          </div>
+        </div>
+      )}
+
+      {/* Step 3 — Review & Submit */}
+      {step === 3 && (
+        <div className="rounded-xl border border-gray-200 bg-gray-50 p-5 dark:border-gray-700 dark:bg-gray-800">
+          <h3 className="mb-4 text-sm font-semibold uppercase tracking-widest text-gray-500 dark:text-gray-400">Your Details</h3>
+          <dl className="space-y-2 text-sm">
+            <ReviewRow label="Full Name" value={values.fullName} />
+            <ReviewRow label="Email" value={values.email} />
+            <ReviewRow label="Phone" value={values.phone} />
+          </dl>
+          <h3 className="mb-4 mt-6 text-sm font-semibold uppercase tracking-widest text-gray-500 dark:text-gray-400">Your Application</h3>
+          <dl className="space-y-2 text-sm">
+            <ReviewRow label="Cover Letter" value={values.coverLetter} />
+            <ReviewRow label="LinkedIn URL" value={values.linkedInUrl} />
+            <ReviewRow label="How did you hear?" value={values.hearAboutRole} />
+          </dl>
+        </div>
+      )}
+
+      {/* Navigation */}
+      <div className="mt-6 flex justify-between">
+        {step > 1 ? (
+          <button type="button" onClick={goBack}
+            className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800">
+            Back
+          </button>
+        ) : (
+          <div />
+        )}
+
+        {step < 3 ? (
+          // Next button — never submits, only advances steps
+          <button type="button" onClick={goNext}
+            className="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700">
+            Next
+          </button>
+        ) : (
+          // Submit button — only appears on step 3, calls handleSubmit directly
+          <button type="button" onClick={handleSubmit} disabled={mutation.isPending}
+            className={cn("rounded-md px-4 py-2 text-sm font-semibold text-white",
+              mutation.isPending ? "cursor-not-allowed bg-gray-400" : "bg-blue-600 hover:bg-blue-700")}>
+            {mutation.isPending ? "Submitting…" : "Submit Application"}
+          </button>
+        )}
+      </div>
     </div>
   );
 }

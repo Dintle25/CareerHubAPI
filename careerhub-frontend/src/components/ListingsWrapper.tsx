@@ -28,10 +28,10 @@ export default function ListingsWrapper({ jobs, statsMap }: ListingsWrapperProps
   const showClosedJobs = useDashboardStore((state) => state.showClosedJobs);
 
   // Filter closed jobs if the employer toggled them off
-//   const visibleJobs = showClosedJobs ? jobs : jobs.filter((j) => j.isActive);
-const visibleJobs = showClosedJobs 
-  ? (jobs ?? []) 
-  : (jobs ?? []).filter((j) => j.isActive);
+  //   const visibleJobs = showClosedJobs ? jobs : jobs.filter((j) => j.isActive);
+  const visibleJobs = showClosedJobs
+    ? (jobs ?? [])
+    : (jobs ?? []).filter((j) => j.isActive);
 
   if (visibleJobs.length === 0) {
     return (
@@ -63,6 +63,9 @@ const visibleJobs = showClosedJobs
             <div className="mt-3 flex items-center justify-between">
               <Link href={`/jobs/${job.id}`} className="text-sm text-blue-600 hover:underline dark:text-blue-400">
                 View
+              </Link>
+              <Link href={`/dashboard/listings/${job.id}/applicants`} className="text-purple-600 hover:underline dark:text-purple-400">
+                Applicants
               </Link>
               <CloseJobButton jobId={job.id} isActive={job.isActive} />
             </div>

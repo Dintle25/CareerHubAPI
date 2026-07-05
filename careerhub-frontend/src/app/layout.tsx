@@ -83,6 +83,10 @@ export default async function RootLayout({
                     >
                       Jobs
                     </Link>
+
+                    
+
+
                     <div className="flex items-center gap-2">
                       <span className="text-sm text-gray-700 dark:text-gray-300">{username}</span>
                       <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-700 dark:bg-blue-900 dark:text-blue-300">
