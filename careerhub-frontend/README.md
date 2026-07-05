@@ -844,3 +844,166 @@ This chunk only downloads when a candidate navigates to a job detail page.
 
 ![Bundle analyzer screenshot showing ApplicationWizard chunk](./screenshots/bundle-chunk.png)
 
+
+## 3.4--------------------------------------------------------------------------------------------------------------------
+# Assignment 3.4 — Written Decisions
+
+## Question 1 — Error State Mapping
+
+### Route: `/` (Home page — Public)
+| Error | HTTP / Cause | UI Response | Justification |
+|-------|-------------|-------------|---------------|
+| Page fails to render | 500 server error | Next.js default error page | Home page has no data fetching so this is rare. Default error page is acceptable. |
+
+### Route: `/jobs` (Job listings — Public)
+| Error | HTTP / Cause | UI Response | Justification |
+|-------|-------------|-------------|---------------|
+| API returns non-200 | 500/503 | Error boundary with retry button | User came to browse jobs — show a clear message and let them try again. |
+| API returns empty array | 200 but no data | Empty state message | Not an error — show "No jobs listed" message. |
+| Filters return no results | 200 but filtered to zero | "No jobs match your search" with Clear button | User action caused it — give them a way out. |
+
+### Route: `/jobs/[id]` (Job detail — Public)
+| Error | HTTP / Cause | UI Response | Justification |
+|-------|-------------|-------------|---------------|
+| Job not found | 404 | `notFound()` — renders not-found.tsx | Standard Next.js pattern. Returns HTTP 404 to the browser. |
+| API down | 500 | Throws — surfaces error boundary | Unexpected — let the error boundary handle it. |
+| Job is closed | 200 but isActive=false | Inline "Applications Closed" banner | Not an error — informational message is correct. |
+
+### Route: `/login` (Auth form — Public)
+| Error | HTTP / Cause | UI Response | Justification |
+|-------|-------------|-------------|---------------|
+| Wrong credentials | 401 | Inline error panel on the form | The error is about what the user typed — it belongs next to the form, not as a toast. |
+| Auth server down | 500 | Inline error message | Same reasoning — keep feedback near the action that caused it. |
+
+### Route: `/register` (Registration — Public)
+| Error | HTTP / Cause | UI Response | Justification |
+|-------|-------------|-------------|---------------|
+| Email already exists | 409 | Inline error on the email field | The user needs to know which field to fix. |
+| Validation failure | 400 | Inline field errors via Zod | Field-level errors belong next to their fields. |
+| Server error | 500 | Toast | The user filled the form correctly — the error is on our side. A toast is appropriate. |
+
+### Route: `/apply/[jobId]` (Application wizard — JobSeeker only)
+| Error | HTTP / Cause | UI Response | Justification |
+|-------|-------------|-------------|---------------|
+| Not authenticated | No session | Middleware redirects to /login | Must be handled before the page loads. |
+| Duplicate application | 409 | Toast error | The user already applied — they don't need to fix the form, just be informed. |
+| Submit fails | 500 | Toast error | API error after valid submission — toast is correct, form stays intact for retry. |
+| Job closed during wizard | 410/400 | Toast + disable submit | Race condition — inform user gracefully without losing their draft. |
+
+### Route: `/applications` (JobSeeker only)
+| Error | HTTP / Cause | UI Response | Justification |
+|-------|-------------|-------------|---------------|
+| Not authenticated | No session | Middleware redirects to /login | Access control handled at the middleware level. |
+| API returns error | 500 | Error boundary | Page cannot render without data — error boundary is correct. |
+| No applications yet | 200 empty array | Empty state message | Expected state for new users — show a helpful message. |
+
+### Route: `/dashboard` (Employer only)
+| Error | HTTP / Cause | UI Response | Justification |
+|-------|-------------|-------------|---------------|
+| Not authenticated | No session | Middleware redirects to /login | Access control at middleware level. |
+| Wrong role (candidate) | Session but wrong role | Middleware redirects to /jobs | Candidate should never see this page. |
+
+### Route: `/dashboard/listings/[id]/applicants` (Employer only)
+| Error | HTTP / Cause | UI Response | Justification |
+|-------|-------------|-------------|---------------|
+| Listing not found | 404 | notFound() | Standard pattern. |
+| Not the owner | 403 | Redirect to /dashboard | Employer tried to access another employer's listing. Redirect silently. |
+| API error | 500 | Error boundary | Page cannot render without applicant data. |
+
+### Most damaging error state
+The most damaging error is a **duplicate application submission with no clear feedback**. A candidate who fills in the full multi-step wizard, submits, and receives either a silent failure or a confusing generic error will lose trust in the platform entirely. They cannot tell if their application was received or not. Unlike a 404 or a login redirect — which are clear and recoverable — an ambiguous submission error leaves the user with no next step. They may re-submit and get confused by a duplicate rejection, or they may walk away believing they applied when they did not. This directly harms the core purpose of the product.
+
+---
+
+## Question 2 — Business Rules: Server vs Client
+
+| # | Rule | Enforced | Risk if client-only |
+|---|------|----------|-------------------|
+| 1 | Apply button hidden for employers and repeat applicants | Both | API must reject duplicate — hiding the button is not enough |
+| 2 | Closed/Draft listings show status banner, Apply hidden | Both | Backend auto-closes listings — frontend must re-check on load |
+| 3 | Only the owning employer sees Edit/Close controls | Both | A direct API call would succeed if only hidden on the client |
+| 4 | Application status updates restricted to listing's employer | Server only | Business-critical — must be enforced at the API level |
+| 5 | Expired listings auto-close on backend | Server (auto) + Client (display) | Frontend must handle the transition gracefully on next load |
+
+### Is hiding the Apply button enough for duplicate applications?
+
+No. Hiding the button is a UX convenience, not a security control. A user who knows the API endpoint can bypass the UI and submit directly with a tool like Postman. The API must reject duplicate applications.
+
+The API should return **409 Conflict** for a duplicate application. The frontend should surface this as a **toast notification** — not inline on the form and not as a page-level message. The reasoning: the form data is valid, the user filled it in correctly, and the error is a business rule violation rather than a validation error. A toast tells the user what happened without implying they did something wrong, and allows them to navigate away cleanly.
+
+---
+
+## Question 3 — Type Risk Audit
+
+### `JobListing` interface
+**a.** Mirrors the backend `JobResponse` DTO.
+**b.** Last verified by running the app and inspecting API responses in Postman during development.
+**c.** Most likely to drift: `type` field (was `jobType` originally), `applicationCount` vs `applicantCount`, any new fields added to `JobResponse` (e.g. `tags`, `remote`, `experienceLevel`).
+
+### `ApplicationRequest` interface
+**a.** Mirrors the backend `CreateApplicationRequest` DTO.
+**b.** Last verified by reading the C# DTO file during implementation.
+**c.** Most likely to drift: optional fields like `phone` and `linkedInUrl` — the backend may have added validation rules or changed them to required.
+
+### `ApplicationResponse` interface
+**a.** Mirrors the backend application response shape.
+**b.** Last verified by inspecting API responses in the browser.
+**c.** Most likely to drift: `submittedAt` format — date/time serialization can change between .NET versions.
+
+### `JobType` enum
+**a.** Mirrors the backend `JobType` enum.
+**b.** Last verified by reading the C# enum during implementation.
+**c.** Most likely to drift: new enum values (e.g. `"Remote"`, `"Hybrid"`) added to the backend without updating the frontend union type.
+
+### Highest risk type
+**`JobListing`** carries the highest risk of drift. It has the most fields, has already drifted once (jobType → type, applicantCount → applicationCount), and is used in every major component in the app. Any backend change to `JobResponse` breaks the jobs listing, job detail, dashboard, and all filters simultaneously.
+
+---
+
+## Question 4 — The Five-Minute Clone Test
+
+### Exact commands to run the full stack
+
+```bash
+# 1. Clone the repository
+git clone https://github.com/Dintle25/CareerHubAPI.git
+cd CareerHubAPI
+
+# 2. Start the database
+docker-compose up -d
+
+# 3. Set up the backend
+cd API
+cp .env.example .env          # fill in values (see below)
+dotnet restore
+dotnet ef database update
+dotnet run
+
+# 4. In a new terminal, set up the frontend
+cd careerhub-frontend
+cp .env.example .env.local    # fill in values (see below)
+npm install
+npm run dev
+```
+
+Open `http://localhost:3000` in your browser.
+
+### Dependencies not captured by `npm install` or `dotnet restore`
+
+| Dependency                     | Where documented                                                |
+|--------------------------------|-----------------------------------------------------------------|
+| **PostgreSQL** via Docker      | `docker-compose.yml` — run `docker-compose up -d`               |
+| **`NEXT_PUBLIC_API_URL`**      | `.env.local` — set to `http://localhost:5076`                   |
+| **`AUTH_SECRET`**              | `.env.local` — any random string e.g. `openssl rand -base64 32` |
+| **`API_URL`**                  | `.env.local` — set to `http://localhost:5076`                   |
+| **Database connection string** | `appsettings.Development.json` — set `DefaultConnection`        |
+| **JWT secret**                 | `appsettings.Development.json` — set `Jwt:Key`                  |
+| **Database seed data**         | Run `dotnet ef database update` — migrations include seed data  |
+
+### Mock users (no sign-up required for testing)
+| Username  | Password    | Role      |
+|-----------|-------------|-----------|
+| employer1 | password123 | employer  |
+| employer2 | password123 | employer  |
+| alice     | password123 | candidate |
+| bob       | password123 | candidate |

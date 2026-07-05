@@ -14,6 +14,7 @@ import { useSession } from "next-auth/react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { submitApplication } from "@/lib/api";
+import { ApiError } from "@/lib/api-error";
 import Link from "next/link";
 import {
   AlertDialog,
@@ -27,7 +28,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
-// ── Zod Schema ────────────────────────────────────────────────────────────────
+//  Zod Schema 
 
 const wizardSchema = z
   .object({
@@ -38,7 +39,6 @@ const wizardSchema = z
     linkedInUrl: z.string().optional(),
     hearAboutRole: z.string().min(1, "Please select an option"),
   })
-  // Cross-step rule: LinkedIn URL must start with the correct domain if provided
   .refine(
     (data) => {
       if (!data.linkedInUrl || data.linkedInUrl === "") return true;
@@ -52,7 +52,7 @@ const wizardSchema = z
 
 type WizardFormData = z.infer<typeof wizardSchema>;
 
-// Fields validated per step — step 3 has none (review only)
+// Fields per step — used to validate each step and to find which step owns a field
 const STEP_FIELDS: Record<number, (keyof WizardFormData)[]> = {
   1: ["fullName", "email", "phone"],
   2: ["coverLetter", "linkedInUrl", "hearAboutRole"],
@@ -80,7 +80,7 @@ export default function ApplicationWizard({ jobId, jobTitle }: ApplicationWizard
 
   const [step, setStep] = useState(1);
   const [showDraftBanner, setShowDraftBanner] = useState(false);
-  const [hasDraft, setHasDraft] = useState(false); // tracks if draft exists for discard button
+  const [hasDraft, setHasDraft] = useState(false);
   const [showSignInMessage, setShowSignInMessage] = useState(false);
 
   const form = useForm<WizardFormData>({
@@ -89,7 +89,7 @@ export default function ApplicationWizard({ jobId, jobTitle }: ApplicationWizard
     mode: "onTouched",
   });
 
-  const { register, handleSubmit, trigger, watch, reset, formState: { errors } } = form;
+  const { register, handleSubmit, trigger, watch, reset, setError, formState: { errors } } = form;
 
   // On mount — restore draft from localStorage if one exists
   useEffect(() => {
@@ -106,7 +106,7 @@ export default function ApplicationWizard({ jobId, jobTitle }: ApplicationWizard
     }
   }, [storageKey, reset]);
 
-  // Auto-save on every field change using watch() as a subscription with cleanup
+  // Auto-save on every field change — subscription with cleanup to avoid memory leaks
   useEffect(() => {
     const subscription = watch((values) => {
       try {
@@ -116,7 +116,6 @@ export default function ApplicationWizard({ jobId, jobTitle }: ApplicationWizard
         // Ignore storage errors
       }
     });
-    // Cleanup — unsubscribe when component unmounts to avoid memory leaks
     return () => subscription.unsubscribe();
   }, [watch, storageKey]);
 
@@ -124,7 +123,6 @@ export default function ApplicationWizard({ jobId, jobTitle }: ApplicationWizard
     mutationFn: submitApplication,
     onSuccess: () => {
       toast.success(`Application for "${jobTitle}" submitted! We'll be in touch soon.`);
-      // Clear draft on successful submit
       localStorage.removeItem(storageKey);
       setHasDraft(false);
       setShowDraftBanner(false);
@@ -133,7 +131,35 @@ export default function ApplicationWizard({ jobId, jobTitle }: ApplicationWizard
       setStep(1);
     },
     onError: (error) => {
-      toast.error(error?.message ?? "Something went wrong. Please try again.");
+      // Handle 422 validation errors from the API
+      // Map field errors back to the form and navigate to the step that owns the first invalid field
+      if (error instanceof ApiError && error.isValidation && error.fields) {
+        // Set each field error inline so the user sees it next to the input
+        const fieldNames = Object.keys(error.fields) as (keyof WizardFormData)[];
+
+        fieldNames.forEach((fieldName) => {
+          const messages = error.fields![fieldName];
+          if (messages?.length) {
+            setError(fieldName, { type: "server", message: messages[0] });
+          }
+        });
+
+        // Navigate back to the step that owns the first invalid field
+        const firstInvalidField = fieldNames[0];
+        for (const [stepNum, fields] of Object.entries(STEP_FIELDS)) {
+          if (fields.includes(firstInvalidField)) {
+            setStep(Number(stepNum));
+            break;
+          }
+        }
+
+        // Show a toast guiding the user to review their application
+        toast.error("Please review your application — some fields need attention.");
+        return;
+      }
+
+      // Generic error — show the message from ApiError or fall back to a default
+      toast.error(error instanceof ApiError ? error.message : "Something went wrong. Please try again.");
     },
   });
 
@@ -142,7 +168,6 @@ export default function ApplicationWizard({ jobId, jobTitle }: ApplicationWizard
       const valid = await trigger(STEP_FIELDS[1]);
       if (!valid) return;
 
-      // Check sign-in at step 1 → step 2 transition
       if (!session || session.user.role !== "candidate") {
         setShowSignInMessage(true);
         return;
@@ -158,12 +183,10 @@ export default function ApplicationWizard({ jobId, jobTitle }: ApplicationWizard
     setStep((s) => s + 1);
   }
 
-  // Back — no re-validation, just move back
   function handleBack() {
     setStep((s) => s - 1);
   }
 
-  // Discard draft — clears localStorage, resets form, goes back to step 1
   function handleDiscardDraft() {
     localStorage.removeItem(storageKey);
     setHasDraft(false);
@@ -195,7 +218,6 @@ export default function ApplicationWizard({ jobId, jobTitle }: ApplicationWizard
           Apply for {jobTitle}
         </h2>
 
-        {/* Discard draft button — only shown when a draft exists */}
         {hasDraft && (
           <AlertDialog>
             <AlertDialogTrigger asChild>
@@ -213,11 +235,7 @@ export default function ApplicationWizard({ jobId, jobTitle }: ApplicationWizard
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Keep draft</AlertDialogCancel>
-                {/* Confirm — pure client-side state manipulation, no Server Action */}
-                <AlertDialogAction
-                  onClick={handleDiscardDraft}
-                  className="bg-red-600 text-white hover:bg-red-700"
-                >
+                <AlertDialogAction onClick={handleDiscardDraft} className="bg-red-600 text-white hover:bg-red-700">
                   Discard draft
                 </AlertDialogAction>
               </AlertDialogFooter>
@@ -247,16 +265,12 @@ export default function ApplicationWizard({ jobId, jobTitle }: ApplicationWizard
         ))}
       </div>
 
-      {/* Draft restored banner */}
       {showDraftBanner && (
         <div className="mb-4 flex items-center justify-between rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 dark:border-blue-800 dark:bg-blue-950">
           <p className="text-sm text-blue-700 dark:text-blue-300">
             You have a saved draft for this application. Restored automatically.
           </p>
-          <button
-            onClick={() => setShowDraftBanner(false)}
-            className="ml-4 text-sm font-medium text-blue-600 hover:text-blue-800 dark:text-blue-400"
-          >
+          <button onClick={() => setShowDraftBanner(false)} className="ml-4 text-sm font-medium text-blue-600 hover:text-blue-800 dark:text-blue-400">
             Dismiss
           </button>
         </div>
@@ -264,7 +278,6 @@ export default function ApplicationWizard({ jobId, jobTitle }: ApplicationWizard
 
       <form onSubmit={onSubmit} noValidate>
 
-        {/* ── Step 1: Your Details ─────────────────────────────────────── */}
         {step === 1 && (
           <div className="space-y-4">
             <div>
@@ -315,7 +328,6 @@ export default function ApplicationWizard({ jobId, jobTitle }: ApplicationWizard
               />
             </div>
 
-            {/* Sign-in message — shown when user tries to advance without being a candidate */}
             {showSignInMessage && (
               <div className="rounded-lg border border-yellow-200 bg-yellow-50 px-4 py-3 dark:border-yellow-800 dark:bg-yellow-950">
                 <p className="text-sm text-yellow-700 dark:text-yellow-300">
@@ -327,7 +339,6 @@ export default function ApplicationWizard({ jobId, jobTitle }: ApplicationWizard
           </div>
         )}
 
-        {/* ── Step 2: Your Application ─────────────────────────────────── */}
         {step === 2 && (
           <div className="space-y-4">
             <div>
@@ -339,8 +350,15 @@ export default function ApplicationWizard({ jobId, jobTitle }: ApplicationWizard
                 rows={6}
                 {...register("coverLetter")}
                 placeholder="Tell us why you're a strong fit for this role…"
-                className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm outline-none resize-y focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
+                className={cn(
+                  "mt-1 w-full rounded-md border px-3 py-2 text-sm shadow-sm outline-none resize-y",
+                  "bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-100",
+                  "focus:ring-2 focus:ring-blue-500",
+                  errors.coverLetter ? "border-red-500" : "border-gray-300 dark:border-gray-600"
+                )}
               />
+              {/* Shows server-side validation error from 422 response */}
+              {errors.coverLetter && <p className="mt-1 text-xs text-red-600">{errors.coverLetter.message}</p>}
             </div>
 
             <div>
@@ -388,21 +406,15 @@ export default function ApplicationWizard({ jobId, jobTitle }: ApplicationWizard
           </div>
         )}
 
-        {/* ── Step 3: Review & Submit ───────────────────────────────────── */}
         {step === 3 && (
           <div className="rounded-xl border border-gray-200 bg-gray-50 p-5 dark:border-gray-700 dark:bg-gray-800">
-            <h3 className="mb-4 text-sm font-semibold uppercase tracking-widest text-gray-500 dark:text-gray-400">
-              Your Details
-            </h3>
+            <h3 className="mb-4 text-sm font-semibold uppercase tracking-widest text-gray-500 dark:text-gray-400">Your Details</h3>
             <dl className="space-y-2 text-sm">
               <ReviewRow label="Full Name" value={values.fullName} />
               <ReviewRow label="Email" value={values.email} />
               <ReviewRow label="Phone" value={values.phone} />
             </dl>
-
-            <h3 className="mb-4 mt-6 text-sm font-semibold uppercase tracking-widest text-gray-500 dark:text-gray-400">
-              Your Application
-            </h3>
+            <h3 className="mb-4 mt-6 text-sm font-semibold uppercase tracking-widest text-gray-500 dark:text-gray-400">Your Application</h3>
             <dl className="space-y-2 text-sm">
               <ReviewRow label="Cover Letter" value={values.coverLetter} />
               <ReviewRow label="LinkedIn URL" value={values.linkedInUrl} />
@@ -411,14 +423,9 @@ export default function ApplicationWizard({ jobId, jobTitle }: ApplicationWizard
           </div>
         )}
 
-        {/* Navigation buttons */}
         <div className="mt-6 flex justify-between">
           {step > 1 ? (
-            <button
-              type="button"
-              onClick={handleBack}
-              className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
-            >
+            <button type="button" onClick={handleBack} className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800">
               Back
             </button>
           ) : (
@@ -426,21 +433,14 @@ export default function ApplicationWizard({ jobId, jobTitle }: ApplicationWizard
           )}
 
           {step < 3 ? (
-            <button
-              type="button"
-              onClick={handleNext}
-              className="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
-            >
+            <button type="button" onClick={handleNext} className="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700">
               Next
             </button>
           ) : (
             <button
               type="submit"
               disabled={mutation.isPending}
-              className={cn(
-                "rounded-md px-4 py-2 text-sm font-semibold text-white",
-                mutation.isPending ? "cursor-not-allowed bg-gray-400" : "bg-blue-600 hover:bg-blue-700"
-              )}
+              className={cn("rounded-md px-4 py-2 text-sm font-semibold text-white", mutation.isPending ? "cursor-not-allowed bg-gray-400" : "bg-blue-600 hover:bg-blue-700")}
             >
               {mutation.isPending ? "Submitting…" : "Submit Application"}
             </button>
@@ -451,7 +451,6 @@ export default function ApplicationWizard({ jobId, jobTitle }: ApplicationWizard
   );
 }
 
-// Read-only review row — shows "Not provided" for empty optional fields
 function ReviewRow({ label, value }: { label: string; value?: string }) {
   return (
     <div className="flex gap-4">
