@@ -1052,3 +1052,108 @@ Open `http://localhost:3000` in your browser.
 
 **Milestone 7 — Closed job**
 ![Closed Listing](./screenshots/Screenshot%20(193).png)
+
+
+## update===============================================================================================
+# Assignment 3.4 — README Additions
+
+---
+
+## Five-Minute Setup Guide
+
+### 1. Clone the repository
+```bash
+git clone https://github.com/Dintle25/CareerHubAPI.git
+cd CareerHubAPI
+```
+
+### 2. Start the database
+```bash
+docker-compose up -d
+```
+
+### 3. Start the backend
+```bash
+cd API
+dotnet restore
+dotnet ef database update
+dotnet run
+```
+Expected: `Now listening on: http://localhost:5076`
+
+### 4. Set up the frontend
+Open a new terminal:
+```bash
+cd careerhub-frontend
+npm install
+```
+
+Create `.env.local` and fill in these values:
+```
+NEXT_PUBLIC_API_URL=http://localhost:5076
+AUTH_SECRET=any-random-string
+NEXTAUTH_URL=http://localhost:3000
+SENTRY_DSN=your-sentry-dsn
+```
+
+### 5. Run the frontend
+```bash
+npm run dev
+```
+Expected: `http://localhost:3000` loads the home page.
+
+### 6. Test accounts (no registration needed)
+| Username  | Password    | Role      |
+|-----------|-------------|-----------|
+| employer1 | password123 | employer  |
+| alice     | password123 | candidate |
+
+---
+
+## Error State Documentation
+
+### 1. Duplicate application (409)
+**What triggers it:** A candidate applies to a job they already applied to.
+
+**What the user sees:** A toast with the API's message. The wizard stays open with their data intact.
+
+**Why:** The form is valid — the error is a business rule, not a form mistake. A toast is correct here. Keeping the form data means they don't lose their work.
+
+### 2. Candidate tries to access the dashboard (403)
+**What triggers it:** A candidate types `/dashboard` directly in the URL.
+
+**What the user sees:** "Access Denied — Employer Access Required" with a link back to jobs. No retry button.
+
+**Why:** Retrying won't help — their role hasn't changed. A retry button would be misleading. The message tells them exactly why they can't access the page.
+
+### 3. Session expires during application (401)
+**What triggers it:** The candidate's login session expires while they are filling in the wizard.
+
+**What the user sees:** An error toast. The wizard stays open and the localStorage draft is preserved.
+
+**Why:** The candidate spent time filling in the form. Losing their data would be a bad experience. They can sign in again and return to find their draft restored automatically.
+
+---
+
+## Type Generation Findings
+
+After running `npm run generate:types` and replacing hand-written types, three breaks appeared:
+
+### Break 1 — Fields marked as optional
+The generated `JobResponse` marks most fields as `string | undefined`. The hand-written type assumed they were always present. Fix: kept the stricter hand-written interface since the API always returns these fields.
+
+### Break 2 — `ApplicationResponse` not in the generated file
+The backend exposes this type under a different name in the OpenAPI spec. Fix: kept the hand-written interface.
+
+### Break 3 — `JobType` is a number in the generated type but a string in the API
+The OpenAPI spec says number (0, 1, 2, 3) but the API actually sends strings ("FullTime", "PartTime" etc.). This is a real inconsistency in the spec. Fix: kept `JobType` as a string union and used `as unknown as JobType` where needed.
+
+---
+
+## End-to-End Demo Writeup
+
+### Employer
+Registration and login worked first try. Creating a listing failed at first because the form was sending a company name string but the API requires a company ID (GUID). Fixed by adding a company dropdown that fetches from the API. Closing a job worked but the listing disappeared from the dashboard immediately — because the API filters out closed jobs. Fixed by removing the `isActive` filter so employers can see all listings. Viewing applicants and updating status worked after fixing the response shape from `{ value: [...] }`.
+
+### Job Seeker
+Registration, login, and browsing worked first try. URL filters persisted correctly. The wizard was the biggest problem — it was submitting on step 2 instead of going to the review step. The fix was to remove the `<form>` element and use a plain button with `onClick` to call the mutation directly. After that, all three steps worked and the success toast fired correctly. The most surprising issue was that mock users (alice, bob) don't have real JWT tokens so applying returned 401. Fixed by storing the real API token in localStorage during login.
