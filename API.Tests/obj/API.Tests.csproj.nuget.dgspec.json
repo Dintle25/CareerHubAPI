@@ -1,31 +1,25 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\Dintle\\Pictures\\Careerbubapi\\CareerHubAPI\\API.Tests\\API.Tests.csproj": {}
+    "C:\\Users\\TrainingCenter 2\\Documents\\careerhub\\CareerHubAPI\\API.Tests\\API.Tests.csproj": {}
   },
   "projects": {
-    "C:\\Users\\Dintle\\Pictures\\Careerbubapi\\CareerHubAPI\\API.Tests\\API.Tests.csproj": {
+    "C:\\Users\\TrainingCenter 2\\Documents\\careerhub\\CareerHubAPI\\API.Tests\\API.Tests.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\Dintle\\Pictures\\Careerbubapi\\CareerHubAPI\\API.Tests\\API.Tests.csproj",
+        "projectUniqueName": "C:\\Users\\TrainingCenter 2\\Documents\\careerhub\\CareerHubAPI\\API.Tests\\API.Tests.csproj",
         "projectName": "API.Tests",
-        "projectPath": "C:\\Users\\Dintle\\Pictures\\Careerbubapi\\CareerHubAPI\\API.Tests\\API.Tests.csproj",
-        "packagesPath": "C:\\Users\\Dintle\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\Dintle\\Pictures\\Careerbubapi\\CareerHubAPI\\API.Tests\\obj\\",
+        "projectPath": "C:\\Users\\TrainingCenter 2\\Documents\\careerhub\\CareerHubAPI\\API.Tests\\API.Tests.csproj",
+        "packagesPath": "C:\\Users\\TrainingCenter 2\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\TrainingCenter 2\\Documents\\careerhub\\CareerHubAPI\\API.Tests\\obj\\",
         "projectStyle": "PackageReference",
-        "fallbackFolders": [
-          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
-        ],
         "configFilePaths": [
-          "C:\\Users\\Dintle\\AppData\\Roaming\\NuGet\\NuGet.Config",
-          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
-          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+          "C:\\Users\\TrainingCenter 2\\AppData\\Roaming\\NuGet\\NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net10.0"
         ],
         "sources": {
-          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
@@ -33,8 +27,8 @@
             "framework": "net10.0",
             "targetAlias": "net10.0",
             "projectReferences": {
-              "C:\\Users\\Dintle\\Pictures\\Careerbubapi\\CareerHubAPI\\API\\API.csproj": {
-                "projectPath": "C:\\Users\\Dintle\\Pictures\\Careerbubapi\\CareerHubAPI\\API\\API.csproj"
+              "C:\\Users\\TrainingCenter 2\\Documents\\careerhub\\CareerHubAPI\\API\\API.csproj": {
+                "projectPath": "C:\\Users\\TrainingCenter 2\\Documents\\careerhub\\CareerHubAPI\\API\\API.csproj"
               }
             }
           }
@@ -383,28 +377,22 @@
         }
       }
     },
-    "C:\\Users\\Dintle\\Pictures\\Careerbubapi\\CareerHubAPI\\API\\API.csproj": {
+    "C:\\Users\\TrainingCenter 2\\Documents\\careerhub\\CareerHubAPI\\API\\API.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\Dintle\\Pictures\\Careerbubapi\\CareerHubAPI\\API\\API.csproj",
+        "projectUniqueName": "C:\\Users\\TrainingCenter 2\\Documents\\careerhub\\CareerHubAPI\\API\\API.csproj",
         "projectName": "API",
-        "projectPath": "C:\\Users\\Dintle\\Pictures\\Careerbubapi\\CareerHubAPI\\API\\API.csproj",
-        "packagesPath": "C:\\Users\\Dintle\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\Dintle\\Pictures\\Careerbubapi\\CareerHubAPI\\API\\obj\\",
+        "projectPath": "C:\\Users\\TrainingCenter 2\\Documents\\careerhub\\CareerHubAPI\\API\\API.csproj",
+        "packagesPath": "C:\\Users\\TrainingCenter 2\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\TrainingCenter 2\\Documents\\careerhub\\CareerHubAPI\\API\\obj\\",
         "projectStyle": "PackageReference",
-        "fallbackFolders": [
-          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
-        ],
         "configFilePaths": [
-          "C:\\Users\\Dintle\\AppData\\Roaming\\NuGet\\NuGet.Config",
-          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
-          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+          "C:\\Users\\TrainingCenter 2\\AppData\\Roaming\\NuGet\\NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net10.0"
         ],
         "sources": {
-          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {

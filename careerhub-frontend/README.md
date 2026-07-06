@@ -968,37 +968,125 @@ The API should return **409 Conflict** for a duplicate application. The frontend
 # 1. Clone the repository
 git clone https://github.com/Dintle25/CareerHubAPI.git
 cd CareerHubAPI
+```
 
-# 2. Start the database
+```bash
+# 2. Start Docker Desktop first (open the app and wait for it to say "Engine running")
+# Then start the PostgreSQL database container
+# This pulls the PostgreSQL image and creates a container automatically
 docker-compose up -d
 
-# 3. Set up the backend
-cd API
-cp .env.example .env  set to `http://localhost:5076`     
-dotnet restore
-dotnet ef database update
-dotnet run
+# Verify the container is running
+docker ps
+# You should see a container named "careerhub-db" or similar running on port 5432
+```
 
-# 4. In a new terminal, set up the frontend
+```bash
+# 3. Set up and start the backend
+cd API
+
+# Install .NET EF tools if not already installed
+dotnet tool install --global dotnet-ef
+
+# Restore NuGet packages
+dotnet restore
+
+# Create the database tables from migrations
+dotnet ef database update
+
+# Start the API
+dotnet run
+# Expected output: Now listening on: http://localhost:5076
+```
+
+```bash
+# 4. In a NEW terminal, set up the frontend
 cd careerhub-frontend
-cp .env.example .env.local   set to `http://localhost:5076`
+
+# Install Node packages
 npm install
+
+# Create the environment file
+# On Mac/Linux:
+cp .env.example .env.local
+
+# On Windows PowerShell:
+Copy-Item .env.example .env.local
+```
+
+Open `.env.local` and fill in these values:
+```
+NEXT_PUBLIC_API_URL=http://localhost:5076
+AUTH_SECRET=any-random-string-at-least-32-chars
+NEXTAUTH_URL=http://localhost:3000
+```
+
+```bash
+# Start the frontend
 npm run dev
+# Expected output: Ready - http://localhost:3000
 ```
 
 Open `http://localhost:3000` in your browser.
 
+### If you are on a new/different computer
+
+Run these extra steps before `npm run dev`:
+
+```powershell
+# If AUTH_SECRET error appears — add it directly
+Add-Content .env.local "`nAUTH_SECRET=careerhub-secret-key-2026"
+Add-Content .env.local "`nNEXTAUTH_URL=http://localhost:3000"
+
+# If EF tools version mismatch warning appears
+dotnet tool update --global dotnet-ef
+
+# If database column errors appear (snake_case issue)
+# Drop and recreate the database
+dotnet ef database drop --force
+dotnet ef database update
+```
+
+### Docker troubleshooting
+
+```bash
+# Check if Docker is running
+docker info
+
+# If the container already exists but is stopped
+docker-compose start
+
+# If you need to reset the database completely
+docker-compose down -v
+docker-compose up -d
+dotnet ef database update
+```
+
 ### Dependencies not captured by `npm install` or `dotnet restore`
 
-| Dependency                     | Where documented                                                |
-|--------------------------------|-----------------------------------------------------------------|
-| **PostgreSQL** via Docker      | `docker-compose.yml` — run `docker-compose up -d`               |
-| **`NEXT_PUBLIC_API_URL`**      | `.env.local` — set to `http://localhost:5076`                   |
-| **`AUTH_SECRET`**              | `.env.local` — any random string e.g. `openssl rand -base64 32` |
-| **`API_URL`**                  | `.env.local` — set to `http://localhost:5076`                   |
-| **Database connection string** | `appsettings.Development.json` — set `DefaultConnection`        |
-| **JWT secret**                 | `appsettings.Development.json` — set `Jwt:Key`                  |
-| **Database seed data**         | Run `dotnet ef database update` — migrations include seed data  |
+| Dependency                     | Where documented                                         |
+|--------------------------------|----------------------------------------------------------|
+| **Docker Desktop**             | Install from docker.com — needed to run PostgreSQL       |
+| **PostgreSQL container**       | `docker-compose.yml` — run `docker-compose up -d`        |
+| **`NEXT_PUBLIC_API_URL`**      | `.env.local` — set to `http://localhost:5076`            |
+| **`AUTH_SECRET`**              | `.env.local` — any random string                         |
+| **`NEXTAUTH_URL`**             | `.env.local` — set to `http://localhost:3000`            |
+| **Database connection string** | `appsettings.Development.json` — set `DefaultConnection` |
+| **JWT secret**                 | `appsettings.Development.json` — set `Jwt:Key`           |
+| **Database seed data**         | Run `dotnet ef database update` — migrations include seed|
+
+### Getting started
+
+**Register a new account:**
+1. Go to `http://localhost:3000/register`
+2. Fill in your first name, last name, email and password
+3. Click "Create account" — you are redirected to the login page
+4. On the login page, select your role (Job Seeker or Employer)
+5. Enter your email and password and click "Sign in"
+6. Employers are redirected to `/dashboard/listings`
+7. Candidates are redirected to `/jobs`
+
+**Note:** Register separately for each role you want to test. Use different email addresses for the employer and job seeker accounts.
 
 
 ## Part 4 — End-to-End Demo Screenshots
