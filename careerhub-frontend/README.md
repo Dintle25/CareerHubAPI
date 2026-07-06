@@ -969,6 +969,7 @@ The API should return **409 Conflict** for a duplicate application. The frontend
 git clone https://github.com/Dintle25/CareerHubAPI.git
 cd CareerHubAPI
 ```
+git switch -b assignment_front_3.4 
 
 ```bash
 # 2. Start Docker Desktop first (open the app and wait for it to say "Engine running")
