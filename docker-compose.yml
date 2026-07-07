@@ -1,0 +1,37 @@
+services:
+  postgres:
+    image: postgres:17
+    container_name: careerhub-postgres
+
+    environment:
+      POSTGRES_DB: CareerHubDb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+
+    ports:
+      - "5432:5432"
+
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d CareerHubDb"]
+      interval: 5s
+      timeout: 5s
+      retries: 10      
+api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ConnectionStrings__DefaultConnection=Host=postgres;Database=CareerHubDb;Username=postgres;Password=postgres
+      - Jwt__SecretKey=${JWT_SECRET_KEY}
+    depends_on:
+      postgres:
+        condition: service_healthy  
+    restart: on-failure      
+
+volumes:
+  postgres_data:

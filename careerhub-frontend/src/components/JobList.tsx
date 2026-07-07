@@ -1,0 +1,53 @@
+import React from "react";
+import JobCard from "./JobCard";
+import { JobListing } from "@/types";
+
+interface JobListProps {
+  jobs: JobListing[];
+  selectedId: string | null;
+  onSelect: (id: string) => void;
+}
+
+const JobList: React.FC<JobListProps> = ({
+  jobs,
+  selectedId,
+  onSelect,
+}) => {
+
+  // Show a message if there are no jobs
+  if (jobs.length === 0) {
+    return (
+      <div className="p-6 text-center text-gray-600 dark:text-gray-300">
+        <h2 className="text-lg font-semibold">
+          No CareerHub jobs available
+        </h2>
+        <p>
+          Check back soon — new opportunities are posted regularly.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      {/* Show the number of jobs */}
+      <p className="mb-4 font-medium text-gray-800 dark:text-gray-200">
+        Showing {jobs.length} jobs
+      </p>
+
+      {/* Show all job cards */}
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {jobs.map((job) => (
+          <JobCard
+            key={job.id} // Use the job id as the key
+            job={job}
+            isSelected={selectedId === job.id}
+            onSelect={onSelect}
+          />
+        ))}
+      </div>
+    </div>
+  );
+};
+
+export default JobList;
