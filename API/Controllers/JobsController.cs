@@ -43,12 +43,25 @@ public class JobsController(IJobService jobService) : ControllerBase
     }
 
 
+    // GET /api/jobs/all — returns all jobs including closed ones for the employer dashboard
+    [HttpGet("all")]
+    public async Task<ActionResult<PagedResponse<JobResponse>>> GetAllJobs(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20)
+    {
+        var result = await jobService.GetAllListingsPagedAsync(page, pageSize);
+        return Ok(result);
+    }
+
+
+
+
     [HttpGet("search")]
     [EnableRateLimiting("search")]
     [EndpointSummary("Search jobs")]
     [EndpointDescription(
         "Rate limited to 20 requests per minute — full-text queries are expensive." +
-        "When Q is provided, PostgreSQL full-text search is used with GIN index support. " )]
+        "When Q is provided, PostgreSQL full-text search is used with GIN index support. ")]
     public async Task<ActionResult<PagedResponse<JobResponse>>> SearchJobs(
    [FromQuery] string? location,
    [FromQuery] string? employmentType,
@@ -131,16 +144,17 @@ public class JobsController(IJobService jobService) : ControllerBase
         return Ok(job);
     }
 
-    [Authorize (Roles ="employer")] 
+    //[Authorize (Roles ="employer")] 
     [EnableRateLimiting("post-listing")]
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateJobRequest request)
     {
         var created = await jobService.CreateAsync(request);
-        return CreatedAtAction("GetJobById", new { id = created.Id }, created);
+        //return CreatedAtAction("GetJobById", new { id = created.Id }, created);
+        return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
     }
-    
-     
+
+
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateJobRequest request)
     {
@@ -148,7 +162,7 @@ public class JobsController(IJobService jobService) : ControllerBase
         return Ok(updated);
     }
 
-    [Authorize (Roles ="employer")] 
+    //[Authorize (Roles ="employer")] 
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Close(Guid id)
     {

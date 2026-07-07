@@ -26,6 +26,9 @@ public class CareerHubDbContext(
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+
+       modelBuilder.HasDefaultSchema("public");
+
         modelBuilder.Entity<Company>(entity =>
    {
        // PostgreSQL table name
@@ -54,31 +57,70 @@ public class CareerHubDbContext(
    });
 
 
-        modelBuilder.Entity<Applicant>(entity =>
-   {
-       entity.ToTable("applicants");
+//         modelBuilder.Entity<Applicant>(entity =>
+//    {
+//        entity.ToTable("applicants");
 
-       entity.HasKey(a => a.Id);
+//        entity.HasKey(a => a.Id);
 
-       entity.Property(a => a.Id)
-           .ValueGeneratedNever();
+//        entity.Property(a => a.Id)
+//            .ValueGeneratedNever();
 
-       entity.Property(a => a.FirstName)
-           .IsRequired()
-           .HasMaxLength(100);
+//        entity.Property(a => a.FirstName)
+//            .IsRequired()
+//            .HasMaxLength(100);
 
-       entity.Property(a => a.LastName)
-           .IsRequired()
-           .HasMaxLength(100);
+//        entity.Property(a => a.LastName)
+//            .IsRequired()
+//            .HasMaxLength(100);
 
-       entity.Property(a => a.Email)
-           .IsRequired()
-           .HasMaxLength(255);
+//        entity.Property(a => a.Email)
+//            .IsRequired()
+//            .HasMaxLength(255);
 
-       // Prevent duplicate emails
-       entity.HasIndex(a => a.Email)
-           .IsUnique();
-   });
+//        // Prevent duplicate emails
+//        entity.HasIndex(a => a.Email)
+//            .IsUnique();
+//    });
+
+
+
+       modelBuilder.Entity<Applicant>(entity =>
+{
+    entity.ToTable("applicants");
+    entity.HasKey(a => a.Id);
+    entity.Property(a => a.Id).ValueGeneratedNever();
+    entity.Property(a => a.FirstName).IsRequired().HasMaxLength(100);
+    entity.Property(a => a.LastName).IsRequired().HasMaxLength(100);
+    entity.Property(a => a.Email).IsRequired().HasMaxLength(255);
+    entity.HasIndex(a => a.Email).IsUnique();
+
+    // Store the hashed password — never plain text
+    entity.Property(a => a.PasswordHash).IsRequired().HasMaxLength(255);
+});
+
+modelBuilder.Entity<Application>(entity =>
+{
+    entity.ToTable("applications");
+
+    // Single primary key — replaced the old composite ApplicantId + JobId key
+    entity.HasKey(a => a.Id);
+    entity.Property(a => a.Id).ValueGeneratedNever();
+
+    entity.Property(a => a.FullName).IsRequired().HasMaxLength(100);
+    entity.Property(a => a.Email).IsRequired().HasMaxLength(255);
+    entity.Property(a => a.Phone).HasMaxLength(20);
+    entity.Property(a => a.CoverLetter).IsRequired().HasMaxLength(2000);
+    entity.Property(a => a.LinkedInUrl).HasMaxLength(255);
+
+    // Job FK only — Applicant FK removed
+    entity.HasOne(a => a.Job)
+        .WithMany(j => j.Applications)
+        .HasForeignKey(a => a.JobId)
+        .OnDelete(DeleteBehavior.Cascade);
+});
+
+
 
         modelBuilder.Entity<Job>(entity =>
         {
@@ -89,9 +131,9 @@ public class CareerHubDbContext(
             "CK_jobs_salary_range",
             "\"SalaryMin\" IS NULL OR \"SalaryMax\" IS NULL OR \"SalaryMax\" >= \"SalaryMin\"");
 
-                    t.HasCheckConstraint(
-            "CK_jobs_closing_after_posted",
-            "\"ClosingDate\" > \"PostedAt\"");
+                t.HasCheckConstraint(
+        "CK_jobs_closing_after_posted",
+        "\"ClosingDate\" > \"PostedAt\"");
             });
 
             entity.ToTable("jobs");
@@ -139,34 +181,69 @@ public class CareerHubDbContext(
         });
 
 
-        modelBuilder.Entity<Application>(entity =>
-        {
-            entity.ToTable("applications");
+        // modelBuilder.Entity<Application>(entity =>
+        // {
+        //     entity.ToTable("applications");
 
-            // Composite primary key
-            entity.HasKey(a => new
-            {
-                a.ApplicantId,
-                a.JobId
-            });
+        //     // Composite primary key
+        //     entity.HasKey(a => new
+        //     {
+        //         a.ApplicantId,
+        //         a.JobId
+        //     });
 
-            // Relationship to Applicant
-            entity.HasOne(a => a.Applicant)
-                .WithMany(a => a.Applications)
-                .HasForeignKey(a => a.ApplicantId)
-                .OnDelete(DeleteBehavior.Cascade);
+        //     // Relationship to Applicant
+        //     entity.HasOne(a => a.Applicant)
+        //         .WithMany(a => a.Applications)
+        //         .HasForeignKey(a => a.ApplicantId)
+        //         .OnDelete(DeleteBehavior.Cascade);
 
-            // Relationship to Job
-            entity.HasOne(a => a.Job)
-                .WithMany(j => j.Applications)
-                .HasForeignKey(a => a.JobId)
-                .OnDelete(DeleteBehavior.Cascade);
-        });
+        //     // Relationship to Job
+        //     entity.HasOne(a => a.Job)
+        //         .WithMany(j => j.Applications)
+        //         .HasForeignKey(a => a.JobId)
+        //         .OnDelete(DeleteBehavior.Cascade);
+        // });
 
 
-    }
-    // protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-    // {
-    //     optionsBuilder.LogTo(Console.WriteLine, LogLevel.Information);
-    // }
-}
+//         modelBuilder.Entity<Application>(entity =>
+// {
+//     entity.ToTable("applications");
+
+//     // Primary key
+//     entity.HasKey(a => a.Id);
+
+//     entity.Property(a => a.Id)
+//         .ValueGeneratedNever();
+
+//     entity.Property(a => a.FullName)
+//         .IsRequired()
+//         .HasMaxLength(200);
+
+//     entity.Property(a => a.Email)
+//         .IsRequired()
+//         .HasMaxLength(255);
+
+//     entity.Property(a => a.Phone)
+//         .HasMaxLength(30);
+
+//     entity.Property(a => a.CoverLetter)
+//         .IsRequired();
+
+//     entity.Property(a => a.LinkedInUrl)
+//         .HasMaxLength(500);
+
+//     // Relationship to Job
+//     entity.HasOne(a => a.Job)
+//         .WithMany(j => j.Applications)
+//         .HasForeignKey(a => a.JobId)
+//         .OnDelete(DeleteBehavior.Cascade);
+// });
+
+
+//     }
+//     // protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+//     // {
+//     //     optionsBuilder.LogTo(Console.WriteLine, LogLevel.Information);
+//     // }
+ }}

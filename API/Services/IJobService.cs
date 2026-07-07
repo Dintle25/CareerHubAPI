@@ -21,5 +21,6 @@ public interface IJobService
     Task<JobResponse> UpdateAsync(Guid jobId, UpdateJobRequest request);
  
     Task CloseAsync(Guid jobId);
+    Task<PagedResponse<JobResponse>> GetAllListingsPagedAsync(int page, int pageSize);
 }
  

@@ -1,137 +1,53 @@
-"use client";
+// Home page at /.
+// Server Component — no "use client", no useState, no useEffect.
+// Uses next/image for the hero illustration with priority prop
+// because it is the largest element on first paint (LCP candidate).
 
-import JobList from "@/components/JobList";
-import { JobListing } from "@/types";
-import React, { useEffect, useState } from "react";
+import Link from "next/link";
+import Image from "next/image";
 
 export default function Home() {
-  // hardcoded dataset with realistic South African jobs: 
-  const jobs: JobListing[] = [
-    {
-      //a job that is posted today
-      id: "11111111-aaaa-bbbb-cccc-111111111111",
-      title: "Software Engineer",
-      company: "Bitcube",
-      location: "Johannesburg",
-      jobType: "FullTime",
-      salaryMin: 45000,
-      salaryMax: 65000,
-      postedAt: new Date().toISOString(), // posted today
-      isActive: true,
-      applicantCount: 12,
-    },
-
-    {
-      //a job that is posted more than 30 days  ago
-      id: "22222222-aaaa-bbbb-cccc-222222222222",
-      title: "Data Analyst",
-      company: "Discovery",
-      location: "Cape Town",
-      jobType: "Contract",
-      salaryMin: 30000,
-      salaryMax: 40000,
-      postedAt: "2026-05-01T09:00:00Z", // more than 30 days ago
-      isActive: true,
-      applicantCount: 0, // applicantCount = 0
-    },
-    {
-      //a job listing with isActive = false
-      id: "33333333-aaaa-bbbb-cccc-333333333333",
-      title: "Marketing Coordinator",
-      company: "Shoprite",
-      location: "Durban",
-      jobType: "PartTime",
-      salaryMin: 20000,
-      salaryMax: 25000,
-      postedAt: "2026-06-10T09:00:00Z",
-      isActive: false, // job that is not active
-      applicantCount: 5,
-    },
-    {
-      id: "44444444-aaaa-bbbb-cccc-444444444444",
-      title: "HR Specialist",
-      company: "Sasol",
-      location: "Secunda",
-      jobType: "FullTime",
-      salaryMin: 35000,
-      salaryMax: 50000,
-      postedAt: "2026-06-15T09:00:00Z",
-      isActive: true,
-      applicantCount: 8,
-    },
-    {
-      id: "55555555-aaaa-bbbb-cccc-555555555555",
-      title: "Frontend Developer",
-      company: "Takealot",
-      location: "Remote",
-      jobType: "Internship",
-      salaryMin: 10000,
-      salaryMax: 15000,
-      postedAt: "2026-06-01T09:00:00Z",
-      isActive: true,
-      applicantCount: 2,
-    },
-    {
-      //a job that is older that 30 days
-      id: "66666666-aaaa-bbbb-cccc-666666666666",
-      title: "Project Manager",
-      company: "MTN",
-      location: "Pretoria",
-      jobType: "Contract",
-      salaryMin: 50000,
-      salaryMax: 70000,
-      postedAt: "2026-04-20T09:00:00Z", // older than 30 days
-      isActive: true,
-      applicantCount: 15,
-    },
-  ];
-  // Session storage key
-  const STORAGE_KEY = "selectedJobId";
-
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-
-  // Run once when the page loads
-  // [] means this effect only runs once on mount
-  useEffect(() => {
-    const stored = sessionStorage.getItem(STORAGE_KEY);
-    if (stored !== null && jobs.some((r) => r.id === stored)) {
-      setSelectedId(stored);
-    }
-  }, []);
-
-  // Save the selected job whenever it changes
-  // [selectedId] means this effect runs only when the selected job changes.
-  useEffect(() => {
-    if (selectedId !== null) {
-      sessionStorage.setItem(STORAGE_KEY, selectedId);
-    } else {
-      sessionStorage.removeItem(STORAGE_KEY);
-    }
-  }, [selectedId]);
-  
-
-  // const handleSelect = (id: string) => {
-  //   setSelectedId((prev) => (prev === id ? null : id));
-  // };
-  const handleSelect = (id: string) => {
-  console.log("Clicked job:", id);
-  setSelectedId(prev => (prev === id ? null : id));
-};
-
-
-  const selectedJob = jobs.find((job) => job.id === selectedId);
-
   return (
-    <main className="p-6">
-      {/* the summary panel for only when a job is selected */}
-      {selectedJob && (
-        <div className="mb-6 rounded border border-gray-300 bg-gray-100 p-4 dark:border-gray-700 dark:bg-gray-800">
-          <h2 className="text-lg font-bold text-gray-900 dark:text-white">{selectedJob.title}</h2>
-          <p className="text-gray-700 dark:text-gray-300">{selectedJob.company}</p>
-        </div>
-      )}
+    <main className="mx-auto flex max-w-5xl flex-col items-center px-4 py-16">
+      <div className="flex flex-col items-center gap-10 md:flex-row md:items-center md:justify-between w-full">
 
-      <JobList jobs={jobs} selectedId={selectedId} onSelect={handleSelect} />
+        {/* Left — text and buttons */}
+        <div className="flex flex-col items-center text-center md:items-start md:text-left max-w-lg">
+          <h1 className="text-4xl font-bold tracking-tight text-gray-900 dark:text-gray-100">
+            Welcome to CareerHub
+          </h1>
+          <p className="mt-4 text-lg text-gray-600 dark:text-gray-400">
+            CareerHub connects job seekers with great opportunities. Browse open
+            roles as a candidate, or manage your listings as an employer.
+          </p>
+          <div className="mt-8 flex flex-wrap gap-4">
+            <Link
+              href="/jobs"
+              className="rounded-md bg-blue-600 px-6 py-3 text-sm font-semibold text-white hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600"
+            >
+              Browse Jobs
+            </Link>
+            <Link
+              href="/dashboard/listings"
+              className="rounded-md border border-gray-300 bg-white px-6 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
+            >
+              Employer Dashboard
+            </Link>
+          </div>
+        </div>
+
+        {/* Right — hero illustration.
+            priority is set because this is above the fold and the LCP element.
+            width and height match the intrinsic SVG dimensions. */}
+        <Image
+          src="/hero.svg"
+          alt="Job search illustration"
+          width={800}
+          height={400}
+          priority
+          className="w-full max-w-md"
+        />
+      </div>
     </main>
   );
 }
